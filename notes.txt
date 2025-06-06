@@ -1,0 +1,15 @@
+~/.ssh/config
+
+```
+Host gh
+        HostName github.com
+        User git
+        IdentityFile ~/.ssh/github_mogoreanu_ed25519
+        IdentitiesOnly yes
+        AddKeysToAgent yes
+        ControlMaster auto
+        ControlPath ~/.ssh/tmp/master-%r@%n:%p
+        ControlPersist yes
+```
+
+git clone gh:mogoreanu/exp.git
