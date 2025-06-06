@@ -1,0 +1,11 @@
+cc_binary(
+    name="my_hello",
+    srcs=["my_hello.cc"],
+    deps = [
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log:initialize",
+        ],
+)
