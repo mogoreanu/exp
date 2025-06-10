@@ -9,7 +9,12 @@ The repository contains experimental tools and libraries.
 
 ## Getting started
 
-Install bazel and git stuff.
+Instructions verified on debian 12
+
+Install bazel and git
+```
+sudo apt install bazel git
+```
 
 ```
 git clone https://github.com/mogoreanu/exp.git
