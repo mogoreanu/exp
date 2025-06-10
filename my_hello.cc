@@ -21,6 +21,7 @@ bazel run :my_hello -- --mytest=true
 #include "absl/log/log.h"
 #include "absl/log/flags.h"
 #include "absl/strings/str_join.h"
+#include "absl/time/time.h"
 
 ABSL_FLAG(bool, mytest, false, "");
 
@@ -36,6 +37,10 @@ int main(int argc, char** argv) {
   LOG(INFO) << "This is an INFO log.";
   LOG(WARNING) << "This is a WARNING log.";
   LOG(ERROR) << "This is an ERROR log!";
+
+  absl::Time now = absl::Now();
+  auto one_second_in_the_future = now + absl::Seconds(1);
+  LOG(INFO) << "Now: " << now << " future: " << one_second_in_the_future;
 
   return 0;
 }
