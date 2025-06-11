@@ -1,5 +1,5 @@
 /*
-bazel test token_bucket:simple_token_bucket_test --test_ouptut=streamed
+bazel test token_bucket:simple_token_bucket_test
 */
 
 #include "simple_token_bucket.h"
@@ -7,7 +7,10 @@ bazel test token_bucket:simple_token_bucket_test --test_ouptut=streamed
 #include "absl/log/log.h"
 #include "gtest/gtest.h"
 
-TEST(SimpleTokenBucket, Test50s) {
+namespace mogo {
+namespace {
+
+TEST(SimpleTokenBucketTest, Test50s) {
   absl::Time start_time = absl::Now();
   absl::Time now = start_time;
   mogo::SimpleTokenBucket t(now);
@@ -36,5 +39,9 @@ TEST(SimpleTokenBucket, Test50s) {
   }
   double total_rate = request_count / absl::ToDoubleSeconds(now - start_time);
   LOG(INFO) << "Total rate: " << total_rate << " r/s";
-  ASSERT_NEAR(total_rate, absl::FDivDuration(absl::Seconds(1), request_cost), /*abs_error=*/1);
+  ASSERT_NEAR(total_rate, absl::FDivDuration(absl::Seconds(1), request_cost),
+              /*abs_error=*/1);
 }
+
+}  // namespace
+}  // namespace mogo
