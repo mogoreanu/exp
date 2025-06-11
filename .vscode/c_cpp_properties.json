@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/bazel-exp/external/abseil-cpp+"
+                "${workspaceFolder}/bazel-exp/external/abseil-cpp+",
+                "${workspaceFolder}/bazel-exp/external/googletest+/googletest/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
