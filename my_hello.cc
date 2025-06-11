@@ -17,9 +17,10 @@ bazel run :my_hello -- --mytest=true
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/log/flags.h"
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
-#include "absl/log/flags.h"
+#include "absl/status/status.h"
 #include "absl/strings/str_join.h"
 #include "absl/time/time.h"
 
@@ -41,6 +42,10 @@ int main(int argc, char** argv) {
   absl::Time now = absl::Now();
   auto one_second_in_the_future = now + absl::Seconds(1);
   LOG(INFO) << "Now: " << now << " future: " << one_second_in_the_future;
+
+  absl::Status ok_status = absl::OkStatus();
+  absl::Status bad_status = absl::InternalError("Internal Error!");
+  LOG(INFO) << "OK: " << ok_status << " bad: " << bad_status;
 
   return 0;
 }

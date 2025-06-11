@@ -9,5 +9,6 @@ cc_binary(
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log:initialize",
         "@abseil-cpp//absl/time",
+        "@abseil-cpp//absl/status",
         ],
 )

@@ -1,0 +1,26 @@
+cc_library(
+    name="simple_token_bucket",
+    srcs=["simple_token_bucket.cc"],
+    hdrs=["simple_token_bucket.h"],
+    deps = [
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/time",
+        ],
+)
+
+cc_binary(
+    name="simple_token_bucket_demo",
+    srcs=["simple_token_bucket_demo.cc"],
+    deps = [
+        ":simple_token_bucket",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:flags",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log:initialize",
+        "@abseil-cpp//absl/time",
+        "@abseil-cpp//absl/status",
+        ],
+)
