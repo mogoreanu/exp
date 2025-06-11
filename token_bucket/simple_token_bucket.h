@@ -7,7 +7,7 @@ namespace mogo {
 // Tokens extracted in units of absl::Duration.
 class SimpleThrottler {
  public:
-  SimpleThrottler() : zero_time_(absl::Now()) {}
+  explicit SimpleThrottler(absl::Time now) : zero_time_(now) {}
 
   // Attempts to extract the specified tokens from the token bucket.
   // Returns absl::Zero duration if the extraction was successful.
