@@ -24,3 +24,15 @@ cc_binary(
         "@abseil-cpp//absl/status",
         ],
 )
+
+cc_test(
+    name = "simple_token_bucket_test",
+    size = "small",
+    srcs = ["simple_token_bucket_test.cc"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":simple_token_bucket",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

@@ -23,7 +23,7 @@ namespace mogo {
 absl::Status RunDemo() {
   absl::Time start_time = absl::Now();
   absl::Time now = start_time;
-  mogo::SimpleThrottler t(now);
+  mogo::SimpleTokenBucket t(now);
   absl::Duration request_cost = absl::Microseconds(100);  // 10k requests/sec
   absl::Time end_time = now + absl::Seconds(50);
   absl::Time next_log_time = now + absl::Seconds(1);
@@ -38,14 +38,18 @@ absl::Status RunDemo() {
       now += d;
     }
     if (now > next_log_time) {
-      double log_delta_seconds = absl::ToDoubleSeconds(now - next_log_time + absl::Seconds(1));
+      double log_delta_seconds =
+          absl::ToDoubleSeconds(now - next_log_time + absl::Seconds(1));
       int log_delta_requests = request_count - prev_log_request_count;
-      LOG(INFO) << "Request rate: " << log_delta_requests / log_delta_seconds << " r/s";
+      LOG(INFO) << "Request rate: " << log_delta_requests / log_delta_seconds
+                << " r/s";
       next_log_time += absl::Seconds(1);
       prev_log_request_count = request_count;
     }
   }
-  LOG(INFO) << "Total rate: " << request_count / absl::ToDoubleSeconds(now - start_time) << " r/s";
+  LOG(INFO) << "Total rate: "
+            << request_count / absl::ToDoubleSeconds(now - start_time)
+            << " r/s";
   return absl::OkStatus();
 }
 
