@@ -1,4 +1,5 @@
 #include "absl/time/time.h"
+#include "absl/strings/str_format.h"
 
 namespace mogo {
 
@@ -13,6 +14,11 @@ class SimpleTokenBucket {
   // Returns a delay that the caller should wait for until tokens are going to
   // be available.
   absl::Duration TryGetTokens(absl::Time now, absl::Duration d);
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, SimpleTokenBucket stb) {
+    absl::Format(&sink, "{SimpleTokenBucket zero_time: %v} ", stb.zero_time_);
+  }
 
  private:
   absl::Time zero_time_;
