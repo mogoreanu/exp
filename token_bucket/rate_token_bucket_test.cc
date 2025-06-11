@@ -1,8 +1,8 @@
 /*
-bazel test token_bucket:simple_token_bucket_test
+bazel test token_bucket:rate_token_bucket_test
 */
 
-#include "simple_token_bucket.h"
+#include "rate_token_bucket.h"
 
 #include "absl/log/log.h"
 #include "absl/time/clock.h"
@@ -11,17 +11,17 @@ bazel test token_bucket:simple_token_bucket_test
 namespace mogo {
 namespace {
 
-TEST(SimpleTokenBucketTest, Test50s) {
+TEST(RateTokenBucketTest, Test50s) {
   absl::Time start_time = absl::Now();
   absl::Time now = start_time;
-  mogo::SimpleTokenBucket t(now);
-  absl::Duration request_cost = absl::Microseconds(100);  // 10k requests/sec
+  double rate = 10000;
+  mogo::RateTokenBucket t(now, rate);
   absl::Time end_time = now + absl::Seconds(50);
   absl::Time next_log_time = now + absl::Seconds(1);
   int request_count = 0;
   int prev_log_request_count = request_count;
   while (now < end_time) {
-    absl::Duration d = t.TryGetTokens(now, request_cost);
+    absl::Duration d = t.TryGetTokens(now, 1);
     if (d == absl::ZeroDuration()) {
       request_count++;
     } else {
@@ -40,8 +40,7 @@ TEST(SimpleTokenBucketTest, Test50s) {
   }
   double total_rate = request_count / absl::ToDoubleSeconds(now - start_time);
   LOG(INFO) << "Total rate: " << total_rate << " r/s";
-  ASSERT_NEAR(total_rate, absl::FDivDuration(absl::Seconds(1), request_cost),
-              /*abs_error=*/1);
+  ASSERT_NEAR(total_rate, rate, /*abs_error=*/1);
 }
 
 }  // namespace
