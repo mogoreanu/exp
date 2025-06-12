@@ -11,6 +11,7 @@ bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0
 #include "absl/log/flags.h"
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
@@ -40,34 +41,54 @@ struct FunctionTokenBucketInstance : public TokenBucketInstanceInterface {
 };
 
 absl::Status RunDemo(absl::Time now, TokenBucketInstanceInterface& tb) {
-  const absl::Time start_time = now;
-  absl::Time end_time = now + absl::Seconds(5);
-  absl::Time next_log_time = now + absl::Seconds(1);
-  int request_count = 0;
-  int prev_log_request_count = request_count;
-  while (now < end_time) {
-    absl::Duration d = tb.TryGetTokens(now);
-    if (d == absl::ZeroDuration()) {
-      request_count++;
-    } else {
-      // Sleep until we can schedule the next request.
-      now += d;
+  // Run at max speed for 5s twice.
+  for (int i = 0; i < 2; ++i) {
+    const absl::Time start_time = now;
+    absl::Time end_time = now + absl::Seconds(5);
+    absl::Time next_log_time = now + absl::Seconds(1);
+    int request_count = 0;
+    int prev_log_request_count = request_count;
+    while (now < end_time) {
+      absl::Duration d = tb.TryGetTokens(now);
+      if (d == absl::ZeroDuration()) {
+        request_count++;
+      } else {
+        // Sleep until we can schedule the next request.
+        now += d;
+      }
+      if (now >= next_log_time) {
+        double log_delta_seconds =
+            absl::ToDoubleSeconds(now - next_log_time + absl::Seconds(1));
+        int log_delta_requests = request_count - prev_log_request_count;
+        LOG(INFO) << "Request rate: " << log_delta_requests / log_delta_seconds
+                  << " r/s, request_count: " << log_delta_requests
+                  << ", seconds: " << log_delta_seconds;
+        next_log_time += absl::Seconds(1);
+        prev_log_request_count = request_count;
+      }
     }
-    if (now >= next_log_time) {
-      double log_delta_seconds =
-          absl::ToDoubleSeconds(now - next_log_time + absl::Seconds(1));
-      int log_delta_requests = request_count - prev_log_request_count;
-      LOG(INFO) << "Request rate: " << log_delta_requests / log_delta_seconds
-                << " r/s, request_count: " << log_delta_requests
-                << ", seconds: " << log_delta_seconds;
-      next_log_time += absl::Seconds(1);
-      prev_log_request_count = request_count;
+    double total_seconds = absl::ToDoubleSeconds(now - start_time);
+    LOG(INFO) << "Total rate: " << request_count / total_seconds
+              << " r/s, request_count: " << request_count
+              << ", total_seconds: " << total_seconds;
+
+    LOG(INFO) << "Sleeping for 1h";
+    now += absl::Hours(1);
+  }
+
+  {
+    int total_requests = 20;
+    LOG(INFO) << "Delays for the first " << total_requests << " after a break:";
+    for (int i = 0; i < total_requests; ++i) {
+      absl::Duration d = tb.TryGetTokens(now);
+      LOG(INFO) << "d" << i << ": " << d;
+      if (d > absl::ZeroDuration()) {
+      now += d;
+      CHECK_EQ(absl::ZeroDuration(), tb.TryGetTokens(now));
+      }
     }
   }
-  double total_seconds = absl::ToDoubleSeconds(now - start_time);
-  LOG(INFO) << "Total rate: " << request_count / total_seconds
-            << " r/s, request_count: " << request_count
-            << ", total_seconds: " << total_seconds;
+
   return absl::OkStatus();
 }
 
@@ -95,8 +116,9 @@ absl::Status RunRateDemo() {
 absl::Status RunBurstDemo() {
   double rate = 10000;
   absl::Duration op_cost = absl::Seconds(1) / rate;
-  absl::Duration burst_duration = absl::Milliseconds(100);
-  LOG(INFO) << "Running BurstTokenBucket with rate: " << rate << ", burst_duration: " << burst_duration;
+  absl::Duration burst_duration = absl::Milliseconds(1);
+  LOG(INFO) << "Running BurstTokenBucket with rate: " << rate
+            << ", burst_duration: " << burst_duration;
   absl::Time now = absl::Now();
   mogo::BurstTokenBucket t(now, /*burst_tokens=*/burst_duration);
   FunctionTokenBucketInstance tb([&](absl::Time now) -> absl::Duration {
