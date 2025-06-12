@@ -12,11 +12,12 @@ bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/time/time.h"
 #include "simple_token_bucket.h"
 
-ABSL_FLAG(bool, mytest, false, "");
+ABSL_FLAG(std::string, tb_type, "simple", "");
 
 namespace mogo {
 
@@ -48,19 +49,21 @@ absl::Status RunDemo(absl::Time now, TokenBucketInstanceInterface& tb) {
       // Sleep until we can schedule the next request.
       now += d;
     }
-    if (now > next_log_time) {
+    if (now >= next_log_time) {
       double log_delta_seconds =
           absl::ToDoubleSeconds(now - next_log_time + absl::Seconds(1));
       int log_delta_requests = request_count - prev_log_request_count;
       LOG(INFO) << "Request rate: " << log_delta_requests / log_delta_seconds
-                << " r/s";
+                << " r/s, request_count: " << log_delta_requests
+                << ", seconds: " << log_delta_seconds;
       next_log_time += absl::Seconds(1);
       prev_log_request_count = request_count;
     }
   }
-  LOG(INFO) << "Total rate: "
-            << request_count / absl::ToDoubleSeconds(now - start_time)
-            << " r/s";
+  double total_seconds = absl::ToDoubleSeconds(now - start_time);
+  LOG(INFO) << "Total rate: " << request_count / total_seconds
+            << " r/s, request_count: " << request_count
+            << ", total_seconds: " << total_seconds;
   return absl::OkStatus();
 }
 
@@ -80,10 +83,19 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
 
-  absl::Status s = mogo::RunSimpleDemo();
-  if (s.ok()) {
+  std::string tb_type = absl::GetFlag(FLAGS_tb_type);
+  absl::Status status;
+  if (tb_type == "simple") {
+    status = mogo::RunSimpleDemo();
+  } else {
+    status = absl::InvalidArgumentError(
+        absl::StrCat("Uknown token bucket type: '", tb_type, "'"));
+  }
+
+  if (status.ok()) {
     return EXIT_SUCCESS;
   } else {
+    LOG(ERROR) << status;
     return EXIT_FAILURE;
   }
 }
