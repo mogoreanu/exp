@@ -1,3 +1,6 @@
+#ifndef MOGO_EXP_TOKEN_BUCKET_SIMPLE_TOKEN_BUCKET_H
+#define MOGO_EXP_TOKEN_BUCKET_SIMPLE_TOKEN_BUCKET_H
+
 #include "absl/time/time.h"
 #include "absl/strings/str_format.h"
 
@@ -28,3 +31,5 @@ class SimpleTokenBucket {
 };
 
 }  // namespace mogo
+
+#endif  // MOGO_EXP_TOKEN_BUCKET_SIMPLE_TOKEN_BUCKET_H

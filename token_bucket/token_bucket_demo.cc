@@ -15,9 +15,13 @@ bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/time/time.h"
+#include "burst_token_bucket.h"
+#include "rate_token_bucket.h"
 #include "simple_token_bucket.h"
 
-ABSL_FLAG(std::string, tb_type, "simple", "");
+ABSL_FLAG(
+    std::string, tb_type, "simple",
+    "Type of rate-limiter to use, valid values are `simple`, `rate`, `burst`");
 
 namespace mogo {
 
@@ -77,6 +81,30 @@ absl::Status RunSimpleDemo() {
   return RunDemo(now, tb);
 }
 
+absl::Status RunRateDemo() {
+  double refill_rate = 10000;
+  LOG(INFO) << "Running RateTokenBucket with refill_rate: " << refill_rate;
+  absl::Time now = absl::Now();
+  mogo::RateTokenBucket t(now, /*refill_rate=*/refill_rate);
+  FunctionTokenBucketInstance tb([&](absl::Time now) -> absl::Duration {
+    return t.TryGetTokens(now, /*token_count=*/1);
+  });
+  return RunDemo(now, tb);
+}
+
+absl::Status RunBurstDemo() {
+  double rate = 10000;
+  absl::Duration op_cost = absl::Seconds(1) / rate;
+  absl::Duration burst_duration = absl::Milliseconds(100);
+  LOG(INFO) << "Running BurstTokenBucket with rate: " << rate << ", burst_duration: " << burst_duration;
+  absl::Time now = absl::Now();
+  mogo::BurstTokenBucket t(now, /*burst_tokens=*/burst_duration);
+  FunctionTokenBucketInstance tb([&](absl::Time now) -> absl::Duration {
+    return t.TryGetTokens(now, op_cost);
+  });
+  return RunDemo(now, tb);
+}
+
 }  // namespace mogo
 
 int main(int argc, char** argv) {
@@ -87,6 +115,10 @@ int main(int argc, char** argv) {
   absl::Status status;
   if (tb_type == "simple") {
     status = mogo::RunSimpleDemo();
+  } else if (tb_type == "rate") {
+    status = mogo::RunRateDemo();
+  } else if (tb_type == "burst") {
+    status = mogo::RunBurstDemo();
   } else {
     status = absl::InvalidArgumentError(
         absl::StrCat("Uknown token bucket type: '", tb_type, "'"));

@@ -74,6 +74,8 @@ cc_binary(
     srcs=["token_bucket_demo.cc"],
     deps = [
         ":simple_token_bucket",
+        ":rate_token_bucket",
+        ":burst_token_bucket",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:flags",

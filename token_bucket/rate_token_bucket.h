@@ -1,3 +1,6 @@
+#ifndef MOGO_EXP_TOKEN_BUCKET_RATE_TOKEN_BUCKET_H
+#define MOGO_EXP_TOKEN_BUCKET_RATE_TOKEN_BUCKET_H
+
 #include "simple_token_bucket.h"
 #include "absl/time/time.h"
 
@@ -22,3 +25,5 @@ class RateTokenBucket {
 };
 
 }  // namespace mogo
+
+#endif  // MOGO_EXP_TOKEN_BUCKET_RATE_TOKEN_BUCKET_H
