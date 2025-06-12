@@ -1,5 +1,5 @@
 /*
-bazel run token_bucket:simple_token_bucket_demo -- --stderrthreshold=0
+bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0
 */
 
 #include <iostream>
@@ -20,17 +20,28 @@ ABSL_FLAG(bool, mytest, false, "");
 
 namespace mogo {
 
-absl::Status RunDemo() {
-  absl::Time start_time = absl::Now();
-  absl::Time now = start_time;
-  mogo::SimpleTokenBucket t(now);
-  absl::Duration request_cost = absl::Microseconds(100);  // 10k requests/sec
-  absl::Time end_time = now + absl::Seconds(50);
+struct TokenBucketInstanceInterface {
+  virtual ~TokenBucketInstanceInterface() = default;
+  virtual absl::Duration TryGetTokens(absl::Time now) = 0;
+};
+
+struct FunctionTokenBucketInstance : public TokenBucketInstanceInterface {
+  FunctionTokenBucketInstance(std::function<absl::Duration(absl::Time now)> f)
+      : f_(f) {}
+
+  absl::Duration TryGetTokens(absl::Time now) override { return f_(now); };
+
+  std::function<absl::Duration(absl::Time now)> f_;
+};
+
+absl::Status RunDemo(absl::Time now, TokenBucketInstanceInterface& tb) {
+  const absl::Time start_time = now;
+  absl::Time end_time = now + absl::Seconds(5);
   absl::Time next_log_time = now + absl::Seconds(1);
   int request_count = 0;
   int prev_log_request_count = request_count;
   while (now < end_time) {
-    absl::Duration d = t.TryGetTokens(now, request_cost);
+    absl::Duration d = tb.TryGetTokens(now);
     if (d == absl::ZeroDuration()) {
       request_count++;
     } else {
@@ -53,13 +64,23 @@ absl::Status RunDemo() {
   return absl::OkStatus();
 }
 
+absl::Status RunSimpleDemo() {
+  absl::Time now = absl::Now();
+  mogo::SimpleTokenBucket t(now);
+  absl::Duration request_cost = absl::Microseconds(100);  // 10k requests/sec
+  FunctionTokenBucketInstance tb([&](absl::Time now) -> absl::Duration {
+    return t.TryGetTokens(now, request_cost);
+  });
+  return RunDemo(now, tb);
+}
+
 }  // namespace mogo
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
 
-  absl::Status s = mogo::RunDemo();
+  absl::Status s = mogo::RunSimpleDemo();
   if (s.ok()) {
     return EXIT_SUCCESS;
   } else {
