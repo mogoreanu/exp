@@ -5,6 +5,7 @@ namespace mogo {
 
 // Refills at one second per second.
 // Tokens extracted in units of absl::Duration.
+// Has no burst.
 class SimpleTokenBucket {
  public:
   explicit SimpleTokenBucket(absl::Time now) : zero_time_(now) {}
@@ -21,6 +22,8 @@ class SimpleTokenBucket {
   }
 
  private:
+  // The time when the token bucket returns back to zero and starts allowing
+  // requests through.
   absl::Time zero_time_;
 };
 
