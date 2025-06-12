@@ -1,0 +1,70 @@
+cc_library(
+    name="stat_utils",
+    hdrs=["stat_utils.h"],
+    deps = [
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/time",
+        ],
+)
+
+cc_test(
+    name = "stat_utils_test",
+    size = "small",
+    srcs = ["stat_utils_test.cc"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":stat_utils",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name="approx_counter",
+    hdrs=["approx_counter.h"],
+    deps = [
+        ":stat_utils",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/time",
+        ],
+)
+
+cc_test(
+    name = "approx_counter_test",
+    size = "small",
+    srcs = ["approx_counter_test.cc"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":approx_counter",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# cc_library(
+#     name="burst_token_bucket",
+#     hdrs=["burst_token_bucket.h"],
+#     srcs=["burst_token_bucket.cc"],
+#     deps = [
+#         ":simple_token_bucket",
+#         "@abseil-cpp//absl/strings",
+#         "@abseil-cpp//absl/log",
+#         "@abseil-cpp//absl/log:check",
+#         "@abseil-cpp//absl/time",
+#         ],
+# )
+
+# cc_test(
+#     name = "burst_token_bucket_test",
+#     size = "small",
+#     srcs = ["burst_token_bucket_test.cc"],
+#     visibility = ["//visibility:private"],
+#     deps = [
+#         ":burst_token_bucket",
+#         "@googletest//:gtest",
+#         "@googletest//:gtest_main",
+#     ],
+# )
