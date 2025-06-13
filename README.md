@@ -14,9 +14,9 @@ Instructions verified on debian 12
 Install bazel using the bazelisk binary, it will provide a more up-to-date 
 version that may be required for some of the example invocations.
 
-Install git
+Install git and a C++ compiler compatible with bazel
 ```
-sudo apt install git
+sudo apt install git g++
 ```
 
 Clone the repository and validate that a basic binary can be built and run:
