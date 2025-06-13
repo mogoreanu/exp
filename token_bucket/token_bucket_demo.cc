@@ -1,5 +1,9 @@
 /*
+# Run the demo with the simple token bucket:
 bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0
+
+# Run the demo with the burst token bucket:
+bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0 --tb_type=burst
 */
 
 #include <iostream>
