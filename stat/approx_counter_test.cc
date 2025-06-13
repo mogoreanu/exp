@@ -1,5 +1,5 @@
 /*
-bazel test stat:approx_couter_test --test_output=streamed
+bazel test stat:approx_counter_test --test_output=streamed
 */
 
 #include "approx_counter.h"
