@@ -26,6 +26,10 @@ cd exp
 bazel run :my_hello
 ```
 
+Download and copy buildifier from 
+[here](https://github.com/bazelbuild/buildtools/releases) and put it somewhere 
+in PATH, for example in `/usr/bin/buildifier`
+
 ## vscode setup
 
 Ctrl + P
