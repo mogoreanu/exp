@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "bazel-exp/external/abseil-cpp+/absl"
+		}
+	]
+}
