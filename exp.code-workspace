@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "bazel-exp/external/abseil-cpp+/absl"
+		},
+		{
+			"path": "bazel-exp/external/googletest+/googletest/include/gtest"
 		}
 	]
 }
