@@ -1,12 +1,14 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_binary", "cc_test")
+
 cc_library(
-    name="simple_token_bucket",
-    srcs=["simple_token_bucket.cc"],
-    hdrs=["simple_token_bucket.h"],
+    name = "simple_token_bucket",
+    srcs = ["simple_token_bucket.cc"],
+    hdrs = ["simple_token_bucket.h"],
     deps = [
-        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
-        ],
+    ],
 )
 
 cc_test(
@@ -22,14 +24,14 @@ cc_test(
 )
 
 cc_library(
-    name="rate_token_bucket",
-    hdrs=["rate_token_bucket.h"],
+    name = "rate_token_bucket",
+    hdrs = ["rate_token_bucket.h"],
     deps = [
         ":simple_token_bucket",
-        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
-        ],
+    ],
 )
 
 cc_test(
@@ -45,16 +47,16 @@ cc_test(
 )
 
 cc_library(
-    name="burst_token_bucket",
-    hdrs=["burst_token_bucket.h"],
-    srcs=["burst_token_bucket.cc"],
+    name = "burst_token_bucket",
+    srcs = ["burst_token_bucket.cc"],
+    hdrs = ["burst_token_bucket.h"],
     deps = [
         ":simple_token_bucket",
-        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
-        ],
+    ],
 )
 
 cc_test(
@@ -70,22 +72,21 @@ cc_test(
 )
 
 cc_binary(
-    name="token_bucket_demo",
-    srcs=["token_bucket_demo.cc"],
+    name = "token_bucket_demo",
+    srcs = ["token_bucket_demo.cc"],
     deps = [
-        ":simple_token_bucket",
-        ":rate_token_bucket",
         ":burst_token_bucket",
+        ":rate_token_bucket",
+        ":simple_token_bucket",
         "//stat:approx_counter",
-        "@abseil-cpp//absl/strings",
-        "@abseil-cpp//absl/log",
-        "@abseil-cpp//absl/log:flags",
-        "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/log:flags",
         "@abseil-cpp//absl/log:initialize",
-        "@abseil-cpp//absl/time",
         "@abseil-cpp//absl/status",
-        ],
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
+    ],
 )
-

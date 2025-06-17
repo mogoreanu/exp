@@ -1,11 +1,13 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
 cc_library(
-    name="stat_utils",
-    hdrs=["stat_utils.h"],
+    name = "stat_utils",
+    hdrs = ["stat_utils.h"],
     deps = [
-        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
-        ],
+    ],
 )
 
 cc_test(
@@ -21,16 +23,16 @@ cc_test(
 )
 
 cc_library(
-    name="approx_counter",
-    hdrs=["approx_counter.h"],
+    name = "approx_counter",
+    hdrs = ["approx_counter.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":stat_utils",
-        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
-        ],
+    ],
 )
 
 cc_test(
