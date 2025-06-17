@@ -23,6 +23,7 @@ bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0 --tb_type=burst
 #include "burst_token_bucket.h"
 #include "rate_token_bucket.h"
 #include "simple_token_bucket.h"
+#include "stat/approx_counter.h"
 
 ABSL_FLAG(
     std::string, tb_type, "simple",
@@ -48,6 +49,9 @@ absl::Status RunDemo(absl::Time now, TokenBucketInstanceInterface& tb) {
   // Run at max speed for 5s twice.
   for (int i = 0; i < 2; ++i) {
     const absl::Time start_time = now;
+
+    ApproxCounter req_cnt(now);
+
     absl::Time end_time = now + absl::Seconds(5);
     absl::Time next_log_time = now + absl::Seconds(1);
     int request_count = 0;
@@ -56,6 +60,7 @@ absl::Status RunDemo(absl::Time now, TokenBucketInstanceInterface& tb) {
       absl::Duration d = tb.TryGetTokens(now);
       if (d == absl::ZeroDuration()) {
         request_count++;
+        req_cnt.RecordRequest(1, now);
       } else {
         // Sleep until we can schedule the next request.
         now += d;
@@ -65,6 +70,7 @@ absl::Status RunDemo(absl::Time now, TokenBucketInstanceInterface& tb) {
             absl::ToDoubleSeconds(now - next_log_time + absl::Seconds(1));
         int log_delta_requests = request_count - prev_log_request_count;
         LOG(INFO) << "Request rate: " << log_delta_requests / log_delta_seconds
+                  << " r/s, rate1: " << req_cnt.GetBytesPerSecond(now)
                   << " r/s, request_count: " << log_delta_requests
                   << ", seconds: " << log_delta_seconds;
         next_log_time += absl::Seconds(1);

@@ -23,6 +23,7 @@ cc_test(
 cc_library(
     name="approx_counter",
     hdrs=["approx_counter.h"],
+    visibility = ["//visibility:public"],
     deps = [
         ":stat_utils",
         "@abseil-cpp//absl/strings",
