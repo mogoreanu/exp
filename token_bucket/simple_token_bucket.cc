@@ -1,4 +1,4 @@
-#include "simple_token_bucket.h"
+#include "token_bucket/simple_token_bucket.h"
 
 namespace mogo {
 

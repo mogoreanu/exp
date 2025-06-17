@@ -2,7 +2,7 @@
 bazel test token_bucket:burst_token_bucket_test
 */
 
-#include "burst_token_bucket.h"
+#include "token_bucket/burst_token_bucket.h"
 
 #include "absl/log/log.h"
 #include "absl/time/clock.h"

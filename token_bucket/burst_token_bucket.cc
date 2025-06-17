@@ -1,4 +1,4 @@
-#include "burst_token_bucket.h"
+#include "token_bucket/burst_token_bucket.h"
 
 namespace mogo {
 

@@ -4,7 +4,7 @@
 #include "absl/log/check.h"
 #include "absl/strings/str_format.h"
 #include "absl/time/time.h"
-#include "simple_token_bucket.h"
+#include "token_bucket/simple_token_bucket.h"
 
 namespace mogo {
 

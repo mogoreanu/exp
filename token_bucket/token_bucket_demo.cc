@@ -12,18 +12,18 @@ bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0 --tb_type=burst
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/log/check.h"
 #include "absl/log/flags.h"
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
-#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/time/time.h"
-#include "burst_token_bucket.h"
-#include "rate_token_bucket.h"
-#include "simple_token_bucket.h"
 #include "stat/approx_counter.h"
+#include "token_bucket/burst_token_bucket.h"
+#include "token_bucket/rate_token_bucket.h"
+#include "token_bucket/simple_token_bucket.h"
 
 ABSL_FLAG(
     std::string, tb_type, "simple",
@@ -93,8 +93,8 @@ absl::Status RunDemo(absl::Time now, TokenBucketInstanceInterface& tb) {
       absl::Duration d = tb.TryGetTokens(now);
       LOG(INFO) << "d" << i << ": " << d;
       if (d > absl::ZeroDuration()) {
-      now += d;
-      CHECK_EQ(absl::ZeroDuration(), tb.TryGetTokens(now));
+        now += d;
+        CHECK_EQ(absl::ZeroDuration(), tb.TryGetTokens(now));
       }
     }
   }

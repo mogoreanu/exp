@@ -2,7 +2,7 @@
 bazel test token_bucket:rate_token_bucket_test
 */
 
-#include "rate_token_bucket.h"
+#include "token_bucket/rate_token_bucket.h"
 
 #include "absl/log/log.h"
 #include "absl/time/clock.h"
