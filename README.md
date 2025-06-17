@@ -26,6 +26,14 @@ cd exp
 bazel run :my_hello
 ```
 
+## vscode setup
+
+Ctrl + P
+```
+ext install ms-vscode.cpptools-extension-pack
+ext install BazelBuild.vscode-bazel
+```
+
 ## Useful libraries / binaries
 
 stat/approx_counter - space-efficient and cpu-efficient way to track request / 
