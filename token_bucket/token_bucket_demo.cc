@@ -70,7 +70,7 @@ absl::Status RunDemo(absl::Time now, TokenBucketInstanceInterface& tb) {
             absl::ToDoubleSeconds(now - next_log_time + absl::Seconds(1));
         int log_delta_requests = request_count - prev_log_request_count;
         LOG(INFO) << "Request rate: " << log_delta_requests / log_delta_seconds
-                  << " r/s, rate1: " << req_cnt.GetBytesPerSecond(now)
+                  << " r/s, approx_rate: " << req_cnt.GetBytesPerSecond(now)
                   << " r/s, request_count: " << log_delta_requests
                   << ", seconds: " << log_delta_seconds;
         next_log_time += absl::Seconds(1);
