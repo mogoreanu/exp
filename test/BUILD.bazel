@@ -1,0 +1,13 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+
+cc_test(
+    name = "tuple_unwrapping_test",
+    size = "small",
+    srcs = ["tuple_unwrapping_test.cc"],
+    visibility = ["//visibility:private"],
+    deps = [
+        "@abseil-cpp//absl/log",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
