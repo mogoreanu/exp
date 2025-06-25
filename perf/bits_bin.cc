@@ -7,7 +7,7 @@
 // clang-format off
 /*
 bazel build -c opt perf:bits_bin && \
-gdb blaze-bin/perf/bits_bin -iex "set auto-load off" \
+gdb bazel-bin/perf/bits_bin -iex "set auto-load off" \
   -iex "set pagination off" \
   -ex="disass main2" -ex="disass main3" -ex="disass main4" \
   -ex="disass main_absl_countl_zero" -ex="disass main_get_bucket" -ex="exit"
@@ -79,8 +79,8 @@ int main_get_bucket(uint64_t val) {
   mogo::Histogram<uint64_t, uint64_t> h(/*min=*/0xABC, /*shift=*/4);
   return h.GetBucket(val);
   /*
-blaze build -c opt perf:bits_bin && \
-gdb blaze-bin/perf/bits_bin -iex "set auto-load off" \
+bazel build -c opt perf:bits_bin && \
+gdb bazel-bin/perf/bits_bin -iex "set auto-load off" \
   -iex "set pagination off" -ex="disass main_get_bucket" -ex="exit"
 
 BM_Histogram32GetBucket0            0.741
