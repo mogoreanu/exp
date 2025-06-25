@@ -7,7 +7,7 @@
 #include "gtest/gtest.h"
 
 /*
-blaze test --test_output=streamed experimental/mogo/test:tuple_unwrapping_test
+bazel test --test_output=streamed test:tuple_unwrapping_test
  */
 
 template<typename T>

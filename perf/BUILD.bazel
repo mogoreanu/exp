@@ -1,0 +1,19 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+cc_library(
+    name = "bits",
+    hdrs = ["bits.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@abseil-cpp//absl/numeric:bits",
+    ],
+)
+
+cc_binary(
+    name = "bits_bin",
+    srcs = ["bits_bin.cc"],
+    deps = [
+        ":bits",
+        "@google_benchmark//:benchmark",
+    ],
+)
