@@ -90,3 +90,28 @@ cc_binary(
         "@abseil-cpp//absl/time",
     ],
 )
+
+cc_library(
+    name = "multi_token_bucket",
+    srcs = ["multi_token_bucket.cc"],
+    hdrs = ["multi_token_bucket.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
+    ],
+)
+
+cc_test(
+    name = "multi_token_bucket_test",
+    size = "small",
+    srcs = ["multi_token_bucket_test.cc"],
+    visibility = ["//visibility:private"],
+    deps = [
+        "@abseil-cpp//absl/log",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
