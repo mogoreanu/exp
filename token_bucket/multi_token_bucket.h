@@ -22,8 +22,10 @@ class MultiTokenBucket {
   }
 
  private:
+  // Describes the refill rate over and interval of time.
   struct RateAndEndTime {
     double rate_multiplier;
+    // The interval is open, as in, applies only for now < end_time.
     absl::Time end_time;
   };
   // A circular buffer would be better with the last element always being {1.0,
@@ -37,6 +39,8 @@ class MultiTokenBucket {
   // be used in practice.
   int tail_ = 2;
   RateAndEndTime rates_[kRateBucketCount];
+
+  friend class MultiTokenBucketIntrospector;
 };
 
 }  // namespace mogo

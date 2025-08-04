@@ -7,6 +7,9 @@ namespace mogo {
 absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
                                               absl::Duration d) {
   const double kMinRate = 0.0001;
+  // Here rates_[head_] is equivalent to the zero_time in the SimpleTokenBucket.
+  // It's the time when the token bucket returns back to zero and allows
+  // requests through.
   if (now < rates_[head_].end_time) {
     // The head bucket should always point to the span where the refill rate is
     // at zero.
@@ -14,16 +17,18 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
           rates_[head_].rate_multiplier > -kMinRate);
     return rates_[head_].end_time - now;
   }
-  // now >= rates_[head_].end_time
+  // Now has moved past the zero time, so we allow the request to go through
+  // and need to adjust the rates accordingly.
 
-  // Each request in-flight is going to decrease the refill rate by 10%
+  // Each new request in-flight is going to decrease the refill rate by 10% of
+  // the norminal.
   // We're going to allow up to 10 requests in-flight.
   // The `d` tokens will be extracted over (10 * d) duration.
   const double kRateAdjustmentDelta = 0.1;
+  // We need to have enough buckets to cover all possible rates.
+  DCHECK_GE(kRateAdjustmentDelta * kRateBucketCount, 1);
 
-  auto inc_idx = [this](auto& idx) {
-    idx = (idx + 1) % kRateBucketCount;
-  };
+  auto inc_idx = [this](auto& idx) { idx = (idx + 1) % kRateBucketCount; };
   auto dec_idx = [this](auto& idx) {
     idx = (idx + kRateBucketCount - 1) % kRateBucketCount;
   };
@@ -31,7 +36,7 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
   {
     // Burn tokens from the past
     inc_idx(head_);
-    while (rates_[head_].end_time < now) {
+    while (rates_[head_].end_time <= now) {
       inc_idx(head_);
     }
     dec_idx(head_);
@@ -51,23 +56,34 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
     }
     absl::Duration tokens_full_span =
         span_rate_delta * (rates_[i].end_time - span_start_time);
-    if (tokens_full_span >= d) {
-      // The entire span would generate more tokens than necessary
-      // Need to split the span in two:
-      // * One that has a multiplier: (rate_multiplier - span_rate_delta)
-      // * Another that has the same `rate_multiplier` as before
-      // absl::Duration time_to_generate_d = d / span_rate_delta;
-      // auto tmp = rates_[i];
-      // rates_[i].
-
-    }
-    if (tokens_full_span < d) {
+    if (tokens_full_span <= d) {
       d -= tokens_full_span;
       rates_[i].rate_multiplier -= span_rate_delta;
       if (rates_[i].rate_multiplier < kMinRate) {
+        // We've consumed all tokens from this span.
         head_ = i;
       }
+      continue;
     }
+    // tokens_full_span > d
+    // The entire span would generate more tokens than necessary
+    // Need to split the span in two:
+    // * One that has a multiplier: (rate_multiplier - span_rate_delta)
+    // * Another that has the same `rate_multiplier` as before
+    absl::Duration time_to_generate_d = d / span_rate_delta;
+    auto old_rate = rates_[i];
+    rates_[i].rate_multiplier -= span_rate_delta;
+    rates_[i].end_time = now + time_to_generate_d;
+    inc_idx(i);
+    auto tmp2 = rates_[i];
+    rates_[i] = old_rate;
+    while (rates_[i].end_time < absl::InfiniteFuture()) {
+      inc_idx(i);
+      auto tmp3 = rates_[i];
+      rates_[i] = tmp2;
+      tmp2 = tmp3;
+    } ;
+    return absl::ZeroDuration();
   }
 
   return absl::ZeroDuration();
