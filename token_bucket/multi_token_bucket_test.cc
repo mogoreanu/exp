@@ -34,34 +34,64 @@ class MultiTokenBucketIntrospector {
   }
 
  private:
-  MultiTokenBucket b_;
+  MultiTokenBucket& b_;
 };
 
 namespace {
 
 TEST(MultiTokenBucketTest, Test50s) {
-  // absl::Time now = absl::UnixEpoch() + absl::Hours(1);
-  // MultiTokenBucket b(now);
-  // MultiTokenBucketIntrospector introspector(b);
-  // {
-  //   auto r = introspector.GetRates();
-  //   ASSERT_EQ(r[0].end_time, now);
-  //   ASSERT_EQ(r[0].rate_multiplier, 0);
-  //   ASSERT_EQ(r[1].end_time, absl::InfiniteFuture());
-  //   ASSERT_EQ(r[1].rate_multiplier, 1);
-  // }
+  double err = 0.0000001;
+  absl::Time now = absl::UnixEpoch() + absl::Hours(1);
+  MultiTokenBucket b(now);
+  MultiTokenBucketIntrospector introspector(b);
+  {
+    auto r = introspector.GetRates();
+    ASSERT_EQ(r[0].end_time, now);
+    ASSERT_EQ(r[0].rate_multiplier, 0);
+    ASSERT_EQ(r[1].end_time, absl::InfiniteFuture());
+    ASSERT_EQ(r[1].rate_multiplier, 1);
+  }
 
-  // // Will consume 10ms over the next 100 ms.
-  // ASSERT_EQ(absl::ZeroDuration(), b.TryGetTokens(now, absl::Milliseconds(10)));
-  // {
-  //   auto r = introspector.GetRates();
-  //   ASSERT_EQ(r[0].end_time, now);
-  //   ASSERT_EQ(r[0].rate_multiplier, 0);
-  //   ASSERT_EQ(r[1].end_time, now + absl::Milliseconds(100));
-  //   ASSERT_EQ(r[1].rate_multiplier, 0.9);
-  //   ASSERT_EQ(r[2].end_time, absl::InfiniteFuture());
-  //   ASSERT_EQ(r[2].rate_multiplier, 1);
-  // }
+  // Will consume 10ms over the next 100 ms.
+  ASSERT_EQ(absl::ZeroDuration(), b.TryGetTokens(now, absl::Milliseconds(10)));
+  {
+    auto r = introspector.GetRates();
+    ASSERT_EQ(r[0].end_time, now);
+    ASSERT_EQ(r[0].rate_multiplier, 0);
+    ASSERT_EQ(r[1].end_time, now + absl::Milliseconds(100));
+    ASSERT_EQ(r[1].rate_multiplier, 0.9);
+    ASSERT_EQ(r[2].end_time, absl::InfiniteFuture());
+    ASSERT_EQ(r[2].rate_multiplier, 1);
+  }
+
+  // Will consume 10ms over the next 100 ms again.
+  ASSERT_EQ(absl::ZeroDuration(), b.TryGetTokens(now, absl::Milliseconds(10)));
+  {
+    auto r = introspector.GetRates();
+    ASSERT_EQ(r[0].end_time, now);
+    ASSERT_EQ(r[0].rate_multiplier, 0);
+    ASSERT_EQ(r[1].end_time, now + absl::Milliseconds(100));
+    ASSERT_EQ(r[1].rate_multiplier, 0.8);
+    ASSERT_EQ(r[2].end_time, absl::InfiniteFuture());
+    ASSERT_EQ(r[2].rate_multiplier, 1);
+  }
+
+  now += absl::Milliseconds(50);
+
+  // Will consume 5ms over the leftover 50ms and 5ms more after that.
+  ASSERT_EQ(absl::ZeroDuration(), b.TryGetTokens(now, absl::Milliseconds(10)));
+  {
+    auto r = introspector.GetRates();
+    ASSERT_EQ(r[0].end_time, now);
+    ASSERT_EQ(r[0].rate_multiplier, 0);
+    ASSERT_EQ(r[1].end_time, now + absl::Milliseconds(50));
+    ASSERT_NEAR(r[1].rate_multiplier, 0.7, err);
+    ASSERT_EQ(r[2].end_time, now + absl::Milliseconds(100)) << absl::ToDoubleMilliseconds(r[2].end_time - now);
+    ASSERT_NEAR(r[2].rate_multiplier, 0.9, err);
+    ASSERT_EQ(r[3].end_time, absl::InfiniteFuture());
+    ASSERT_NEAR(r[3].rate_multiplier, 1, err);
+  }
+
 }
 
 }  // namespace

@@ -43,13 +43,13 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
     rates_[head_].end_time = now;
     rates_[head_].rate_multiplier = 0;
   }
-  absl::Time span_start_time = now;
 
   // Withdraw tokens from the future.
   // This will generate at most one additional split.
   auto i = head_;
-  inc_idx(i);
   while (d > absl::ZeroDuration()) {
+    absl::Time span_start_time = rates_[i].end_time;
+    inc_idx(i);
     auto span_rate_delta = kRateAdjustmentDelta;
     if (rates_[i].rate_multiplier < kRateAdjustmentDelta) {
       span_rate_delta = rates_[i].rate_multiplier;
@@ -73,7 +73,7 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
     absl::Duration time_to_generate_d = d / span_rate_delta;
     auto old_rate = rates_[i];
     rates_[i].rate_multiplier -= span_rate_delta;
-    rates_[i].end_time = now + time_to_generate_d;
+    rates_[i].end_time = span_start_time + time_to_generate_d;
     inc_idx(i);
     auto tmp2 = rates_[i];
     rates_[i] = old_rate;
