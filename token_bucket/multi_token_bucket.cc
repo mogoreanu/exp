@@ -12,8 +12,8 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
   // requests through.
   if (now < rates_[head_].end_time) {
     // The head bucket should always point to the span where the refill rate is
-    // at zero.
-    CHECK(rates_[head_].rate_multiplier < kMinRate ||
+    // near zero.
+    CHECK(rates_[head_].rate_multiplier < kMinRate &&
           rates_[head_].rate_multiplier > -kMinRate);
     return rates_[head_].end_time - now;
   }
@@ -28,18 +28,15 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
   // We need to have enough buckets to cover all possible rates.
   DCHECK_GE(kRateAdjustmentDelta * kRateBucketCount, 1);
 
-  auto inc_idx = [this](auto& idx) { idx = (idx + 1) % kRateBucketCount; };
-  auto dec_idx = [this](auto& idx) {
-    idx = (idx + kRateBucketCount - 1) % kRateBucketCount;
-  };
-
   {
+    auto orig_head = head_;
     // Burn tokens from the past
-    inc_idx(head_);
+    IncIdx(head_);
     while (rates_[head_].end_time <= now) {
-      inc_idx(head_);
+      IncIdx(head_);
+      DCHECK(head_ != orig_head);
     }
-    dec_idx(head_);
+    DecIdx(head_);
     rates_[head_].end_time = now;
     rates_[head_].rate_multiplier = 0;
   }
@@ -49,7 +46,8 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
   auto i = head_;
   while (d > absl::ZeroDuration()) {
     absl::Time span_start_time = rates_[i].end_time;
-    inc_idx(i);
+    IncIdx(i);
+    DCHECK(i != head_);
     auto span_rate_delta = kRateAdjustmentDelta;
     if (rates_[i].rate_multiplier < kRateAdjustmentDelta) {
       span_rate_delta = rates_[i].rate_multiplier;
@@ -57,6 +55,7 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
     absl::Duration tokens_full_span =
         span_rate_delta * (rates_[i].end_time - span_start_time);
     if (tokens_full_span <= d) {
+      // We need more tokens than what we get from the current span.
       d -= tokens_full_span;
       rates_[i].rate_multiplier -= span_rate_delta;
       if (rates_[i].rate_multiplier < kMinRate) {
@@ -74,54 +73,21 @@ absl::Duration MultiTokenBucket::TryGetTokens(absl::Time now,
     auto old_rate = rates_[i];
     rates_[i].rate_multiplier -= span_rate_delta;
     rates_[i].end_time = span_start_time + time_to_generate_d;
-    inc_idx(i);
+    IncIdx(i);
+    DCHECK(i != head_);
     auto tmp2 = rates_[i];
     rates_[i] = old_rate;
     while (rates_[i].end_time < absl::InfiniteFuture()) {
-      inc_idx(i);
+      IncIdx(i);
+      DCHECK(i != head_);
       auto tmp3 = rates_[i];
       rates_[i] = tmp2;
       tmp2 = tmp3;
-    } ;
+    };
     return absl::ZeroDuration();
   }
 
   return absl::ZeroDuration();
 }
-
-/*
-absl::Duration tokens_accumulated = absl::ZeroDuration();
-absl::Time span_start_time = rates_[head_].end_time;
-// Accumulate all the tokens that we have already generated because the time
-// has moved.
-while (rates_[++head_].end_time < now) {
-  CHECK_LT(head_, tail_);
-  tokens_accumulated += rates_[head_].rate_multiplier *
-                        (rates_[head_].end_time - span_start_time);
-  span_start_time = rates_[head_].end_time;
-
-  // If we've accumulated more tokens that are necessary to process the
-  // request - done.
-  if (tokens_accumulated >= d) {
-    --head_;
-    rates_[head_].end_time = now;
-    rates_[head_].rate_multiplier = 0;
-    return absl::ZeroDuration();
-  }
-}
-
-// rates_[head_].end_time >= now, the current span is partially overlapping
-// now. We always have such a span because the last span is infinite future.
-tokens_accumulated += rates_[head_].rate_multiplier * (now - span_start_time);
-if (tokens_accumulated >= d) {
-  --head_;
-  rates_[head_].end_time = now;
-  rates_[head_].rate_multiplier = 0;
-  return absl::ZeroDuration();
-}
-
-CHECK_LT(tokens_accumulated, d);
-d -= tokens_accumulated;
-*/
 
 }  // namespace mogo

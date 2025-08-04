@@ -8,6 +8,15 @@
 
 namespace mogo {
 
+/*
+MultiTokenBucket borrows tokens from the future by decreasing the future refill
+rate of the token bucket.
+When the SimpleTokenBucket receives a large request it blocks new requests until
+the bucket returns back to zero. This can create large delays due to head of
+line blocking. To mitigate this problem MultiTokenBucket will smear token
+acquisition over a longer period of time allowing for multiple (by default 10)
+in flight requests.
+*/
 class MultiTokenBucket {
  public:
   explicit MultiTokenBucket(absl::Time now)
@@ -41,6 +50,14 @@ class MultiTokenBucket {
   }
 
  private:
+  template<typename T>
+  void IncIdx(T& idx) { idx = (idx + 1) % kRateBucketCount; }
+
+  template<typename T>
+  void DecIdx(T& idx) {
+    idx = (idx + kRateBucketCount - 1) % kRateBucketCount;
+  }
+
   // Describes the refill rate over and interval of time.
   struct RateAndEndTime {
     double rate_multiplier;
