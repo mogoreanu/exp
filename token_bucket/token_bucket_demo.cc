@@ -4,6 +4,8 @@ bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0
 
 # Run the demo with the burst token bucket:
 bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0 --tb_type=burst
+
+bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0 --tb_type=multi
 */
 
 #include <iostream>
@@ -24,6 +26,7 @@ bazel run token_bucket:token_bucket_demo -- --stderrthreshold=0 --tb_type=burst
 #include "token_bucket/burst_token_bucket.h"
 #include "token_bucket/rate_token_bucket.h"
 #include "token_bucket/simple_token_bucket.h"
+#include "token_bucket/multi_token_bucket.h"
 
 ABSL_FLAG(
     std::string, tb_type, "simple",
@@ -87,7 +90,7 @@ absl::Status RunDemo(absl::Time now, TokenBucketInstanceInterface& tb) {
   }
 
   {
-    int total_requests = 20;
+    int total_requests = 100;
     LOG(INFO) << "Delays for the first " << total_requests << " after a break:";
     for (int i = 0; i < total_requests; ++i) {
       absl::Duration d = tb.TryGetTokens(now);
@@ -137,6 +140,17 @@ absl::Status RunBurstDemo() {
   return RunDemo(now, tb);
 }
 
+absl::Status RunMultiDemo() {
+  absl::Time now = absl::Now();
+  mogo::MultiTokenBucket t(now);
+
+  absl::Duration request_cost = absl::Microseconds(100);  // 10k requests/sec
+  FunctionTokenBucketInstance tb([&](absl::Time now) -> absl::Duration {
+    return t.TryGetTokens(now, request_cost);
+  });
+  return RunDemo(now, tb);
+}
+
 }  // namespace mogo
 
 int main(int argc, char** argv) {
@@ -151,6 +165,8 @@ int main(int argc, char** argv) {
     status = mogo::RunRateDemo();
   } else if (tb_type == "burst") {
     status = mogo::RunBurstDemo();
+  } else if (tb_type == "multi") {
+    status = mogo::RunMultiDemo();
   } else {
     status = absl::InvalidArgumentError(
         absl::StrCat("Uknown token bucket type: '", tb_type, "'"));

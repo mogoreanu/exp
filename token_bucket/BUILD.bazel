@@ -71,26 +71,6 @@ cc_test(
     ],
 )
 
-cc_binary(
-    name = "token_bucket_demo",
-    srcs = ["token_bucket_demo.cc"],
-    deps = [
-        ":burst_token_bucket",
-        ":rate_token_bucket",
-        ":simple_token_bucket",
-        "//stat:approx_counter",
-        "@abseil-cpp//absl/flags:flag",
-        "@abseil-cpp//absl/flags:parse",
-        "@abseil-cpp//absl/log",
-        "@abseil-cpp//absl/log:check",
-        "@abseil-cpp//absl/log:flags",
-        "@abseil-cpp//absl/log:initialize",
-        "@abseil-cpp//absl/status",
-        "@abseil-cpp//absl/strings",
-        "@abseil-cpp//absl/time",
-    ],
-)
-
 cc_library(
     name = "multi_token_bucket",
     srcs = ["multi_token_bucket.cc"],
@@ -116,3 +96,25 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_binary(
+    name = "token_bucket_demo",
+    srcs = ["token_bucket_demo.cc"],
+    deps = [
+        ":burst_token_bucket",
+        ":rate_token_bucket",
+        ":simple_token_bucket",
+        ":multi_token_bucket",
+        "//stat:approx_counter",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/log:flags",
+        "@abseil-cpp//absl/log:initialize",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
+    ],
+)
+

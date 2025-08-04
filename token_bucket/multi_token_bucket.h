@@ -1,7 +1,8 @@
-#ifndef MOGO_EXP_TOKEN_BUCKET_SIMPLE_TOKEN_BUCKET_H
-#define MOGO_EXP_TOKEN_BUCKET_SIMPLE_TOKEN_BUCKET_H
+#ifndef MOGO_EXP_TOKEN_BUCKET_MULTI_TOKEN_BUCKET_H
+#define MOGO_EXP_TOKEN_BUCKET_MULTI_TOKEN_BUCKET_H
 
 #include "absl/container/inlined_vector.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/time/time.h"
 
@@ -11,14 +12,32 @@ class MultiTokenBucket {
  public:
   explicit MultiTokenBucket(absl::Time now)
       : rates_{{/*rate_multiplier=*/0.0, /*end_time=*/now},
-                {/*rate_multiplier=1*/ 1.0,
-                 /*end_time=*/absl::InfiniteFuture()}} {}
+               {/*rate_multiplier=1*/ 1.0,
+                /*end_time=*/absl::InfiniteFuture()}} {}
 
   absl::Duration TryGetTokens(absl::Time now, absl::Duration d);
 
   template <typename Sink>
-  friend void AbslStringify(Sink& sink, MultiTokenBucket stb) {
-    absl::Format(&sink, "{MultiTokenBucket head: %v, tail: %v} ", stb.head_, stb.tail_);
+  friend void AbslStringify(Sink& sink, MultiTokenBucket mtb) {
+    absl::Time zero_time = mtb.rates_[mtb.head_].end_time;
+    sink.Append(absl::StrCat("{MultitokenBucket head=", mtb.head_, " "));
+
+    auto i = mtb.head_;
+    while (true) {
+      ++i;
+      i %= mtb.kRateBucketCount;
+      if (i == mtb.head_) {
+        sink.Append(" overflow! ");
+        break;
+      }
+      sink.Append(absl::StrCat("{", mtb.rates_[i].rate_multiplier, ",",
+                               mtb.rates_[i].end_time - zero_time, "}"));
+      if (mtb.rates_[i].end_time == absl::InfiniteFuture()) {
+        break;
+      }
+    };
+
+    sink.Append("}");
   }
 
  private:
@@ -35,9 +54,12 @@ class MultiTokenBucket {
   // The next rate scope end time is the delay required always points to the
   // rate == 0 cell;
   int head_ = 0;
-  // Points to the next element after the InfiniteFuture one. Shouldn't have to
-  // be used in practice.
-  int tail_ = 2;
+
+  // A circular buffer with the refill rates and the time span associated with
+  // them. `rates_[head_]` always points to a span with a refill rate of zero
+  // and the end time of that span is the time when requests are going to start
+  // to be unblocked. The last span ends at InfiniteFuture and has a refill rate
+  // of 1.
   RateAndEndTime rates_[kRateBucketCount];
 
   friend class MultiTokenBucketIntrospector;
@@ -45,4 +67,4 @@ class MultiTokenBucket {
 
 }  // namespace mogo
 
-#endif  // MOGO_EXP_TOKEN_BUCKET_SIMPLE_TOKEN_BUCKET_H
+#endif  // MOGO_EXP_TOKEN_BUCKET_MULTI_TOKEN_BUCKET_H

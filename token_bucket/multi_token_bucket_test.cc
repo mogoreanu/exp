@@ -55,6 +55,7 @@ TEST(MultiTokenBucketTest, Test50s) {
 
   // Will consume 10ms over the next 100 ms.
   ASSERT_EQ(absl::ZeroDuration(), b.TryGetTokens(now, absl::Milliseconds(10)));
+  LOG(INFO) << b;
   {
     auto r = introspector.GetRates();
     ASSERT_NEAR(r[0].rate_multiplier, 0, err);
@@ -69,6 +70,7 @@ TEST(MultiTokenBucketTest, Test50s) {
 
   // Will consume 10ms over the next 100 ms again.
   ASSERT_EQ(absl::ZeroDuration(), b.TryGetTokens(now, absl::Milliseconds(10)));
+  LOG(INFO) << b;
   {
     auto r = introspector.GetRates();
     ASSERT_NEAR(r[0].rate_multiplier, 0,err);
@@ -85,6 +87,7 @@ TEST(MultiTokenBucketTest, Test50s) {
 
   // Will consume 5ms over the leftover 50ms and 5ms more after that.
   ASSERT_EQ(absl::ZeroDuration(), b.TryGetTokens(now, absl::Milliseconds(10)));
+  LOG(INFO) << b;
   {
     auto r = introspector.GetRates();
     ASSERT_EQ(r[0].rate_multiplier, 0);
@@ -94,8 +97,7 @@ TEST(MultiTokenBucketTest, Test50s) {
     ASSERT_EQ(r[1].end_time, now + absl::Milliseconds(50));
 
     ASSERT_NEAR(r[2].rate_multiplier, 0.9, err);
-    ASSERT_EQ(r[2].end_time, now + absl::Milliseconds(100))
-        << absl::ToDoubleMilliseconds(r[2].end_time - now);
+    ASSERT_EQ(r[2].end_time, now + absl::Milliseconds(100));
 
     ASSERT_NEAR(r[3].rate_multiplier, 1, err);
     ASSERT_EQ(r[3].end_time, absl::InfiniteFuture());
@@ -104,6 +106,7 @@ TEST(MultiTokenBucketTest, Test50s) {
   // Test split interval in the middle.
   // Will consume 1ms over the leftover 10ms.
   ASSERT_EQ(absl::ZeroDuration(), b.TryGetTokens(now, absl::Milliseconds(1)));
+  LOG(INFO) << b;
   {
     auto r = introspector.GetRates();
     ASSERT_NEAR(r[0].rate_multiplier, 0, err);
@@ -116,13 +119,23 @@ TEST(MultiTokenBucketTest, Test50s) {
     ASSERT_EQ(r[2].end_time, now + absl::Milliseconds(50));
 
     ASSERT_NEAR(r[3].rate_multiplier, 0.9, err);
-    ASSERT_EQ(r[3].end_time, now + absl::Milliseconds(100))
-        << absl::ToDoubleMilliseconds(r[2].end_time - now);
+    ASSERT_EQ(r[3].end_time, now + absl::Milliseconds(100));
 
     ASSERT_NEAR(r[4].rate_multiplier, 1, err);
     ASSERT_EQ(r[4].end_time, absl::InfiniteFuture());
   }
 
+  // 6 more
+  for (int q = 0; q < 6; ++q) {
+    ASSERT_EQ(absl::ZeroDuration(), b.TryGetTokens(now, absl::Milliseconds(1)));
+    LOG(INFO) << b;
+  }
+
+  {
+    auto r = introspector.GetRates();
+    ASSERT_NEAR(r[0].rate_multiplier, 0.0, err);
+    ASSERT_EQ(r[0].end_time, now + absl::Milliseconds(10));
+  }
 }
 
 }  // namespace
