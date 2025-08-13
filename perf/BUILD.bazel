@@ -17,3 +17,82 @@ cc_binary(
         "@google_benchmark//:benchmark",
     ],
 )
+
+# cc_library(
+#     name = "tightloop_lib",
+#     srcs = ["tightloop_lib.cc"],
+#     hdrs = ["tightloop_lib.h"],
+#     visibility = ["//visibility:public"],
+#     deps = [
+#         ":bits",
+#         "@abseil-cpp//absl/flags:flag",
+#         "@abseil-cpp//absl/log",
+#         "@abseil-cpp//absl/status",
+#         "@abseil-cpp//absl/strings",
+#         "@abseil-cpp//absl/time",
+#     ],
+# )
+
+# cc_binary(
+#     name = "tightloop",
+#     srcs = ["tightloop.cc"],
+#     features = ["fully_static_link"],
+#     linkstatic = 1,
+#     visibility = ["//visibility:public"],
+#     deps = [
+#         ":tightloop_lib",
+#         "@abseil-cpp//absl/log",
+#         "@abseil-cpp//absl/flags:parse",
+#         "@abseil-cpp//absl/log:initialize",
+#     ],
+# )
+
+# cc_test(
+#     name = "tightloop_test",
+#     srcs = ["tightloop_test.cc"],
+#     deps = [
+#         ":bits",
+#         ":time_histogram",
+#         "@googletest//:gtest",
+#         "@googletest//:gtest_main",
+
+#     ],
+# )
+
+
+# cc_library(
+#     name = "time_histogram",
+#     srcs = ["time_histogram.cc"],
+#     hdrs = ["time_histogram.h"],
+#     compatible_with = ["//buildenv/target:non_prod"],
+#     visibility = ["//visibility:public"],
+#     deps = [
+#         "@abseil-cpp//absl/numeric:bits",
+#         "@abseil-cpp//absl/time",
+#         "//util/bits",
+#     ],
+# )
+
+# cc_test(
+#     name = "time_histogram_test",
+#     size = "small",
+#     srcs = ["time_histogram_test.cc"],
+#     deps = [
+#         ":time_histogram",
+#         "@googletest//:gtest",
+#         "@googletest//:gtest_main",
+#     ],
+# )
+
+# cc_test(
+#     name = "time_histogram_benchmarks",
+#     srcs = ["time_histogram_benchmarks.cc"],
+#     args = [
+#         "--benchmark_filter=all",
+#     ],
+#     deps = [
+#         ":time_histogram",
+#         "@googletest//:gtest",
+#         "@googletest//:gtest_main",
+#     ],
+# )
