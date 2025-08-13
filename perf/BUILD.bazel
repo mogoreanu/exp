@@ -60,18 +60,16 @@ cc_binary(
 # )
 
 
-# cc_library(
-#     name = "time_histogram",
-#     srcs = ["time_histogram.cc"],
-#     hdrs = ["time_histogram.h"],
-#     compatible_with = ["//buildenv/target:non_prod"],
-#     visibility = ["//visibility:public"],
-#     deps = [
-#         "@abseil-cpp//absl/numeric:bits",
-#         "@abseil-cpp//absl/time",
-#         "//util/bits",
-#     ],
-# )
+cc_library(
+    name = "time_histogram",
+    srcs = ["time_histogram.cc"],
+    hdrs = ["time_histogram.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@abseil-cpp//absl/numeric:bits",
+        "@abseil-cpp//absl/time",
+    ],
+)
 
 # cc_test(
 #     name = "time_histogram_test",

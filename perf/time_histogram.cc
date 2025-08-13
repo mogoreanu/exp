@@ -4,19 +4,42 @@
 #include <sstream>
 #include <string>
 
-#include "base/cycleclock.h"
-#include "base/macros.h"
-#include "base/timer.h"
+#include "absl/base/internal/cycleclock.h"
 
 namespace cloud_util_stat {
 
 void cloud_util_stat::TimeHistogramSpan::End() {
-  hist_->AddSample(CycleClock::Now() - start_cycles_);
+  hist_->AddSample(absl::base_internal::CycleClock::Now() - start_cycles_);
 }
 
 void cloud_util_stat::TimeHistogramSpan::End(int64_t total_samples) {
-  hist_->AddSamples(total_samples, CycleClock::Now() - start_cycles_);
+  hist_->AddSamples(total_samples,
+                    absl::base_internal::CycleClock::Now() - start_cycles_);
 }
+
+TimeHistogramSpan::TimeHistogramSpan(TimeHistogram* hist)
+    : hist_(hist), start_cycles_(absl::base_internal::CycleClock::Now()) {}
+
+inline double Frequency() {
+  return absl::base_internal::CycleClock::Frequency();
+}
+
+inline int64_t CyclesToUsec(int64_t cycles) {
+  return static_cast<int64_t>(round(cycles * (1e6 / Frequency())));
+}
+
+inline int64_t SecondsToCycles(double seconds) {
+  return static_cast<int64_t>(Frequency() * seconds);
+}
+
+inline int64_t DurationToCycles(absl::Duration duration) {
+  return SecondsToCycles(absl::FDivDuration(duration, absl::Seconds(1)));
+}
+
+TimeHistogram::TimeHistogram(absl::Duration min, absl::Duration step1)
+    : cycles_min_(DurationToCycles(min)),
+      cycles_shift_(
+          ::cloud_util_stat::internal::Fls64(DurationToCycles(step1))) {}
 
 std::string cloud_util_stat::TimeHistogram::ToHumanString(bool cycles) const {
   std::ostringstream s;
@@ -51,9 +74,9 @@ std::string cloud_util_stat::TimeHistogram::ToHumanString(bool cycles) const {
       << buckets_[less_min_bucket] * 100 / total_sample_count << "% \t"
       << buckets_[less_min_bucket] << "\t< ";
     if (cycles) {
-      s << CycleTimerBase::CyclesToUsec(cycles_min_) << " cyc\n";
+      s << CyclesToUsec(cycles_min_) << " cyc\n";
     } else {
-      s << CycleTimerBase::CyclesToUsec(cycles_min_) << " us\n";
+      s << CyclesToUsec(cycles_min_) << " us\n";
     }
   }
 
@@ -68,8 +91,8 @@ std::string cloud_util_stat::TimeHistogram::ToHumanString(bool cycles) const {
       s << GetElapsedRangeLow(i) << " cyc - " << GetElapsedRangeHigh(i)
         << " cyc\n";
     } else {
-      s << CycleTimerBase::CyclesToUsec(GetElapsedRangeLow(i)) << " us - "
-        << CycleTimerBase::CyclesToUsec(GetElapsedRangeHigh(i)) << " us\n";
+      s << CyclesToUsec(GetElapsedRangeLow(i)) << " us - "
+        << CyclesToUsec(GetElapsedRangeHigh(i)) << " us\n";
     }
   }
   return s.str();

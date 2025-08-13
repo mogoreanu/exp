@@ -5,13 +5,9 @@
 #include <cstdint>
 #include <string>
 
-#include "base/cycleclock.h"
-#include "base/timer.h"
-#include "base/types.h"
-#include "third_party/absl/numeric/bits.h"
-#include "third_party/absl/time/clock.h"
-#include "third_party/absl/time/time.h"
-#include "util/bits/bits.h"
+#include "absl/numeric/bits.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 
 namespace cloud_util_stat {
 
@@ -30,8 +26,7 @@ class TimeHistogramSpan {
   void End(int64_t total_samples);
 
  private:
-  explicit TimeHistogramSpan(TimeHistogram* hist)
-      : hist_(hist), start_cycles_(CycleClock::Now()) {}
+  explicit TimeHistogramSpan(TimeHistogram* hist);
 
   TimeHistogram* hist_;
   int64_t start_cycles_;
@@ -53,10 +48,7 @@ class TimeHistogramScopeSpan {
 
 class TimeHistogram {
  public:
-  TimeHistogram(absl::Duration min, absl::Duration step1)
-      : cycles_min_(CycleTimerBase::DurationToCycles(min)),
-        cycles_shift_(::cloud_util_stat::internal::Fls64(
-            CycleTimerBase::DurationToCycles(step1))) {}
+  TimeHistogram(absl::Duration min, absl::Duration step1);
 
   TimeHistogram(int64_t cycles_min, int64_t cycles_step1)
       : cycles_min_(cycles_min),
