@@ -1,11 +1,11 @@
-#include "experimental/mogo/perf/time_histogram.h"
+#include "perf/time_histogram.h"
 
 #include <iostream>
 #include <ostream>
 #include <string>
 
-#include "base/logging.h"
-#include "testing/base/public/gunit.h"
+#include "absl/log/log.h"
+#include "gtest/gtest.h"
 
 /*
 blaze test --test_output=streamed experimental/mogo/perf:time_histogram_test
