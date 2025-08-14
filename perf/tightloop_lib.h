@@ -22,6 +22,8 @@ ABSL_DECLARE_FLAG(bool, exclude_sleep);
 
 ABSL_DECLARE_FLAG(bool, print_csv);
 
+namespace mogo { 
+
 // Returns [cycles_min, cycles_shift] from the histogram flags.
 std::pair<uint64_t, uint64_t> SetupEnvironment();
 
@@ -98,4 +100,6 @@ absl::Status RunLoop(T&& callback) {
   return absl::OkStatus();
 }
 
-#endif  // MOGO_PERF_TIGHTLOOP_LIB_H_
+}  // namespace mogo
+
+#endif  // PERF_TIGHTLOOP_LIB_H_

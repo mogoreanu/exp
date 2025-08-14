@@ -9,13 +9,15 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 
-namespace cloud_util_stat {
+namespace mogo {
 
 namespace internal {
+
 // Find last set. Bits are numbered from 1 - least significant to
 // 64 - most significant.
 // Returns zero if the input was zero.
 inline int Fls64(uint64_t x) { return 64 - absl::countl_zero(x); }
+
 }  // namespace internal
 
 class TimeHistogram;
@@ -52,7 +54,7 @@ class TimeHistogram {
 
   TimeHistogram(int64_t cycles_min, int64_t cycles_step1)
       : cycles_min_(cycles_min),
-        cycles_shift_(::cloud_util_stat::internal::Fls64(cycles_step1)) {}
+        cycles_shift_(internal::Fls64(cycles_step1)) {}
 
   // Returns an object that is tracking the time for a code span.
   // The TimeHistogramSpan::End method has to be called to record the result
@@ -102,7 +104,7 @@ class TimeHistogram {
     // if (elapsed < cycles_min + 2 ^ (cycles_shift + 1)) return 1
     // if (elapsed < cycles_min + 2 ^ (cycles_shift + 2)) return 2
     // ...
-    return ::cloud_util_stat::internal::Fls64((elapsed_cycles - cycles_min_) >>
+    return internal::Fls64((elapsed_cycles - cycles_min_) >>
                                               cycles_shift_);
   }
 
@@ -129,6 +131,6 @@ class TimeHistogram {
   const int64_t cycles_shift_;
 };
 
-}  // namespace cloud_util_stat
+}  // namespace mogo
 
 #endif  // PERF_TIME_HISTOGRAM_H_

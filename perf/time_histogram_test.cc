@@ -11,7 +11,7 @@
 bazel test --test_output=streamed perf:time_histogram_test
  */
 
-namespace cloud_util_stat {
+namespace mogo {
 namespace {
 
 TEST(StringTest, Test1) {
@@ -52,4 +52,4 @@ TEST(StringTest, Test1) {
 }
 
 }  // namespace
-}  // namespace cloud_util_stat
+}  // namespace mogo

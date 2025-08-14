@@ -25,9 +25,8 @@ sudo apt-get install cpufrequtils
 sudo cpufreq-set -r -g performance
 
 bazel build -c opt --dynamic_mode=off perf:tightloop && \
-taskset -c 0 \
-bazel-bin/perf/tightloop --cycles_min=10 --cycles_shift=0 \
-    --run_duration=10s
+taskset -c 0 bazel-bin/perf/tightloop --cycles_min=10 --cycles_shift=0 \
+  --run_duration=10s
 
 # mogo::FLS
 Count      Cyc                      Microseconds             % tot  % this
@@ -54,6 +53,7 @@ Count      Cyc                      Microseconds             % tot  % this
 2          131082 cyc - 262154 cyc  87.5925us - 175.1785us   100    0
 ----------------------------------------------------------------------------
 
+# To benchmark the sleep wake-up consistency
 bazel run -c opt perf:tightloop -- --run_duration=10s \
   --duration_min=4ms --duration_shift=3us --sleep_duration=4000us
 
@@ -65,15 +65,15 @@ sudo cpufreq-set -g powersave
 
 #include <cstdlib>
 
-#include "perf/tightloop_lib.h"
-#include "absl/log/log.h"
-#include "absl/log/initialize.h"
 #include "absl/flags/parse.h"
+#include "absl/log/initialize.h"
+#include "absl/log/log.h"
+#include "perf/tightloop_lib.h"
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
-  absl::Status status = RunLoop(/*callback=*/[](int64_t _) {});
+  absl::Status status = mogo::RunLoop(/*callback=*/[](int64_t _) {});
   if (!status.ok()) {
     LOG(ERROR) << status;
     return EXIT_FAILURE;

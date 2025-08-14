@@ -6,13 +6,13 @@
 
 #include "absl/base/internal/cycleclock.h"
 
-namespace cloud_util_stat {
+namespace mogo {
 
-void cloud_util_stat::TimeHistogramSpan::End() {
+void TimeHistogramSpan::End() {
   hist_->AddSample(absl::base_internal::CycleClock::Now() - start_cycles_);
 }
 
-void cloud_util_stat::TimeHistogramSpan::End(int64_t total_samples) {
+void TimeHistogramSpan::End(int64_t total_samples) {
   hist_->AddSamples(total_samples,
                     absl::base_internal::CycleClock::Now() - start_cycles_);
 }
@@ -39,9 +39,9 @@ inline int64_t DurationToCycles(absl::Duration duration) {
 TimeHistogram::TimeHistogram(absl::Duration min, absl::Duration step1)
     : cycles_min_(DurationToCycles(min)),
       cycles_shift_(
-          ::cloud_util_stat::internal::Fls64(DurationToCycles(step1))) {}
+          internal::Fls64(DurationToCycles(step1))) {}
 
-std::string cloud_util_stat::TimeHistogram::ToHumanString(bool cycles) const {
+std::string TimeHistogram::ToHumanString(bool cycles) const {
   std::ostringstream s;
 
   // Find the first non-zero bucket.
@@ -98,4 +98,4 @@ std::string cloud_util_stat::TimeHistogram::ToHumanString(bool cycles) const {
   return s.str();
 }
 
-}  // namespace cloud_util_stat
+}  // namespace mogo

@@ -1,8 +1,7 @@
 #include <cstdint>
 
-#include "perf/bits.h"
 #include "benchmark/benchmark.h"
-
+#include "perf/bits.h"
 
 // clang-format off
 /*

@@ -56,10 +56,9 @@ cc_test(
         ":time_histogram",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/random",
+        "@google_benchmark//:benchmark",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
-        # "@google_benchmark//:benchmark_main",
-        "@google_benchmark//:benchmark",
     ],
 )
 
@@ -71,8 +70,8 @@ cc_test(
         ":time_histogram",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/random",
-        "@googletest//:gtest",
         "@google_benchmark//:benchmark_main",
+        "@googletest//:gtest",
     ],
 )
 

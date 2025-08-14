@@ -11,12 +11,12 @@
 #include <utility>
 #include <vector>
 
-#include "perf/bits.h"
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "perf/bits.h"
 
 ABSL_FLAG(int32_t, processor_affinity, -1,
           "The processor to bind to and only run on");
@@ -44,6 +44,7 @@ ABSL_FLAG(bool, exclude_sleep, false,
 
 ABSL_FLAG(bool, print_csv, false, "Print the histogram in CSV format.");
 
+namespace mogo {
 
 // Returns [cycles_min, cycles_shift]
 std::pair<uint64_t, uint64_t> SetupEnvironment() {
@@ -80,12 +81,10 @@ std::pair<uint64_t, uint64_t> SetupEnvironment() {
     cycles_shift = flag_cycles_shift;
   } else if (flag_dur_shift >= absl::ZeroDuration()) {
     // If explicit shift in microseconds was specified use it.
-    cycles_shift =
-        mogo::Fls64(DurationToCycles(flag_dur_shift));
+    cycles_shift = mogo::Fls64(DurationToCycles(flag_dur_shift));
   } else if (flag_dur_min >= absl::ZeroDuration()) {
     // If we're interested in microseconds, use microsecond granularity.
-    cycles_shift =
-        mogo::Fls64(DurationToCycles(absl::Microseconds(1)));
+    cycles_shift = mogo::Fls64(DurationToCycles(absl::Microseconds(1)));
   } else {
     cycles_shift = mogo::Fls64(cycles_min);
     LOG(INFO) << "cycles_shift = " << cycles_shift;
@@ -189,7 +188,8 @@ void PrintHistogram(mogo::Histogram64& h) {
 
   int64_t total_sample_count = h.total();
 
-  LOG(INFO) << "Cycles per microsecond: " << DurationToCycles(absl::Microseconds(1));
+  LOG(INFO) << "Cycles per microsecond: "
+            << DurationToCycles(absl::Microseconds(1));
 
   if (absl::GetFlag(FLAGS_print_csv)) {
     std::cout << "CSV data:" << std::endl;
@@ -219,8 +219,7 @@ void PrintHistogram(mogo::Histogram64& h) {
           {absl::StrCat(h.value_at_pos(i)),
            absl::StrCat(h.range_min_pos(i), " cyc - ", h.range_max_pos(i),
                         " cyc"),
-           absl::StrCat(CyclesToDuration(h.range_min_pos(i)),
-                        " - ",
+           absl::StrCat(CyclesToDuration(h.range_min_pos(i)), " - ",
                         CyclesToDuration(h.range_max_pos(i))),
            absl::StrCat(running_sample_count * 100 / total_sample_count),
            absl::StrCat(h.value_at_pos(i) * 100 / total_sample_count)});
@@ -228,3 +227,5 @@ void PrintHistogram(mogo::Histogram64& h) {
   }
   table.Print();
 }
+
+}  // namespace mogo

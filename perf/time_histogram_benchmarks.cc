@@ -22,7 +22,7 @@ Benchmark                        Time             CPU   Iterations
 BM_TimeHistogram_Simple       23.2 ns         23.2 ns     30216846
 */
 
-namespace cloud_util_stat {
+namespace mogo {
 namespace {
 
 void BM_TimeHistogram_Simple(benchmark::State& state) {
@@ -35,4 +35,4 @@ void BM_TimeHistogram_Simple(benchmark::State& state) {
 BENCHMARK(BM_TimeHistogram_Simple);
 
 }  // namespace
-}  // namespace cloud_util_stat
+}  // namespace mogo

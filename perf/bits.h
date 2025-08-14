@@ -1,5 +1,5 @@
-#ifndef EXPERIMENTAL_MOGO_PERF_BITS_H_
-#define EXPERIMENTAL_MOGO_PERF_BITS_H_
+#ifndef PERF_BITS_H_
+#define PERF_BITS_H_
 
 #include <stdint.h>
 
@@ -212,4 +212,4 @@ using Histogram64 = Histogram</*TSample=*/uint64_t, /*TBucket=*/uint64_t>;
 
 }  // namespace mogo
 
-#endif  // EXPERIMENTAL_MOGO_PERF_BITS_H_
+#endif  // PERF_BITS_H_

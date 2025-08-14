@@ -13,6 +13,7 @@ bazel test --test_output=streamed perf:tightloop_test
 */
 
 namespace mogo {
+namespace {
 
 TEST(StringTest, Test1) {
   absl::InsecureBitGen gen;
@@ -27,7 +28,7 @@ TEST(StringTest, Test1) {
               << " bsr= " << Fls64Bsr(x);
     EXPECT_EQ(Fls64(x), Fls64Bsr(x)) << "x=" << x << std::endl
                                      << std::bitset<64>(x);
-    EXPECT_EQ(cloud_util_stat::internal::Fls64(x), i + 1);
+    EXPECT_EQ(mogo::internal::Fls64(x), i + 1);
     EXPECT_EQ(mogo::Fls64(x), i + 1);
     x <<= 1;
   }
@@ -191,4 +192,5 @@ TEST(TestHistogram32, ShiftValue) {
   VALIDATE_POS(h, 1128, 6);
 }
 
+}  // namespace
 }  // namespace mogo
