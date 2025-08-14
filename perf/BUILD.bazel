@@ -1,3 +1,4 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
@@ -82,15 +83,17 @@ cc_test(
     ],
 )
 
-# cc_test(
-#     name = "time_histogram_benchmarks",
-#     srcs = ["time_histogram_benchmarks.cc"],
-#     args = [
-#         "--benchmark_filter=all",
-#     ],
-#     deps = [
-#         ":time_histogram",
-#         "@googletest//:gtest",
-#         "@googletest//:gtest_main",
-#     ],
-# )
+cc_test(
+    name = "time_histogram_benchmarks",
+    srcs = ["time_histogram_benchmarks.cc"],
+    args = [
+        "--benchmark_filter=all",
+    ],
+    deps = [
+        ":time_histogram",
+        "@abseil-cpp//absl/log",
+        "@google_benchmark//:benchmark_main",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

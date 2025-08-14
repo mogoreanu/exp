@@ -8,7 +8,7 @@
 #include "gtest/gtest.h"
 
 /*
-blaze test --test_output=streamed experimental/mogo/perf:time_histogram_test
+bazel test --test_output=streamed perf:time_histogram_test
  */
 
 namespace cloud_util_stat {
