@@ -36,6 +36,15 @@ inline int64_t SecondsToCycles(double seconds) {
   return static_cast<int64_t>(Frequency() * seconds);
 }
 
+inline int64_t DurationToCycles(absl::Duration duration) {
+  return SecondsToCycles(absl::FDivDuration(duration, absl::Seconds(1)));
+}
+
+inline absl::Duration CyclesToDuration(int64_t cycles) {
+  // TODO(mogo): Check me.
+  return absl::Seconds(cycles / Frequency());
+}
+
 // Will run the tight loop invoking the callback on every iteration.
 // The callback argument is the current cycle clock.
 template <typename T>

@@ -44,13 +44,6 @@ ABSL_FLAG(bool, exclude_sleep, false,
 
 ABSL_FLAG(bool, print_csv, false, "Print the histogram in CSV format.");
 
-inline int64_t SecondsToCycles(double seconds) {
-  return static_cast<int64_t>(Frequency() * seconds);
-}
-
-inline int64_t DurationToCycles(absl::Duration duration) {
-  return SecondsToCycles(absl::FDivDuration(duration, absl::Seconds(1)));
-}
 
 // Returns [cycles_min, cycles_shift]
 std::pair<uint64_t, uint64_t> SetupEnvironment() {
@@ -204,7 +197,7 @@ void PrintHistogram(mogo::Histogram64& h) {
     for (int i = first_nonzero_bucket; i <= last_nonzero_bucket; ++i) {
       std::cout << h.value_at_pos(i) << "," << h.range_max_pos(i) << ","
                 << absl::ToDoubleMicroseconds(
-                       CycleTimerBase::CyclesToDuration(h.range_max_pos(i)))
+                       CyclesToDuration(h.range_max_pos(i)))
                 << std::endl;
     }
     std::cout << std::endl << "Human readable data:" << std::endl;
@@ -218,7 +211,7 @@ void PrintHistogram(mogo::Histogram64& h) {
       table.AddRow(
           {absl::StrCat(h.value_at_pos(i)),
            absl::StrCat(h.range_max_pos(i), " cyc"),
-           absl::StrCat(CycleTimerBase::CyclesToDuration(h.range_max_pos(i))),
+           absl::StrCat(CyclesToDuration(h.range_max_pos(i))),
            absl::StrCat(h.value_at_pos(i) * 100 / total_sample_count),
            absl::StrCat(h.value_at_pos(i) * 100 / total_sample_count)});
     } else {
@@ -226,9 +219,9 @@ void PrintHistogram(mogo::Histogram64& h) {
           {absl::StrCat(h.value_at_pos(i)),
            absl::StrCat(h.range_min_pos(i), " cyc - ", h.range_max_pos(i),
                         " cyc"),
-           absl::StrCat(CycleTimerBase::CyclesToDuration(h.range_min_pos(i)),
+           absl::StrCat(CyclesToDuration(h.range_min_pos(i)),
                         " - ",
-                        CycleTimerBase::CyclesToDuration(h.range_max_pos(i))),
+                        CyclesToDuration(h.range_max_pos(i))),
            absl::StrCat(running_sample_count * 100 / total_sample_count),
            absl::StrCat(h.value_at_pos(i) * 100 / total_sample_count)});
     }

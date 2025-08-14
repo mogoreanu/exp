@@ -17,6 +17,10 @@
 
 // clang-format off
 /*
+# Easiest way to run
+bazel run -c opt perf:tightloop -- --run_duration=10s \
+   --cycles_min=10 --cycles_shift=0
+
 sudo apt-get install cpufrequtils
 sudo cpufreq-set -r -g performance
 
@@ -50,7 +54,7 @@ Count      Cyc                      Microseconds             % tot  % this
 2          131082 cyc - 262154 cyc  87.5925us - 175.1785us   100    0
 ----------------------------------------------------------------------------
 
-blaze run -c opt experimental/mogo/perf:tightloop -- --run_duration=10s \
+bazel run -c opt perf:tightloop -- --run_duration=10s \
   --duration_min=4ms --duration_shift=3us --sleep_duration=4000us
 
 sudo cpufreq-set -g powersave

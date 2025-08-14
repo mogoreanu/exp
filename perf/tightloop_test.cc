@@ -3,48 +3,20 @@
 #include <ostream>
 
 #include "absl/log/log.h"
-// #include "cloud/util/random/random.h"
+#include "absl/random/random.h"
+#include "gtest/gtest.h"
 #include "perf/bits.h"
 #include "perf/time_histogram.h"
-#include "gtest/gtest.h"
 
 /*
-
 bazel test --test_output=streamed perf:tightloop_test
-
-blaze test --test_output=streamed 
-
-sudo cpufreq-set -g performance
-
-blaze build -c opt  --dynamic_mode=off experimental/mogo/perf:tightloop_test \
-&& taskset -c 0 blaze-bin/experimental/mogo/perf/tightloop_test \
-  --benchmark_filter=all \
-  --benchmark_repetitions=1 \
-  --benchmark_enable_random_interleaving=false \
-  --heap_check=
-
-sudo cpufreq-set -g powersave
-
-# FLS
-Benchmark                    Time(ns)        CPU(ns)     Iterations
--------------------------------------------------------------------
-BM_Histogram32GetBucket0            0.826          0.825  848676721
-BM_Histogram32GetBucket1            0.827          0.826  848328581
-BM_Histogram32GetBucket012          2.97           2.96   236592155
-
-# absl::countl_zero
-Benchmark                    Time(ns)        CPU(ns)     Iterations
--------------------------------------------------------------------
-BM_Histogram32GetBucket0            0.742          0.741  943017355
-BM_Histogram32GetBucket1            0.742          0.741  945192155
-BM_Histogram32GetBucket012          2.87           2.86   244212645
-
 */
 
 namespace mogo {
 
 TEST(StringTest, Test1) {
-  int64 x = 0;
+  absl::InsecureBitGen gen;
+  int64_t x = 0;
   LOG(INFO) << std::bitset<64>(x) << " clz= " << Fls64(x)
             << " bsr= " << Fls64Bsr(x);
   EXPECT_EQ(Fls64(0), Fls64Bsr(0)) << "x=" << x << std::endl
@@ -69,7 +41,8 @@ TEST(StringTest, Test1) {
   }
 
   for (int i = 0; i < 100; ++i) {
-    x = cloud_util_random::Random64();
+    x = absl::uniform_int_distribution<int64_t>(
+        0, std::numeric_limits<int64_t>::max())(gen);
     LOG(INFO) << std::bitset<64>(x) << " clz= " << Fls64(x)
               << " bsr= " << Fls64Bsr(x);
     EXPECT_EQ(Fls64(x), Fls64Bsr(x)) << "x=" << x << std::endl
@@ -217,43 +190,5 @@ TEST(TestHistogram32, ShiftValue) {
   VALIDATE_POS(h, 1127, 5);
   VALIDATE_POS(h, 1128, 6);
 }
-
-void BM_Histogram32GetBucket0(benchmark::State& state) {
-  Histogram<uint32_t, uint32_t> h(/*min=*/100, /*shift=*/3);
-  uint32_t x = 36;
-  uint64_t sum = 0;
-  for (auto s : state) {
-    testing::DoNotOptimize(x);
-    sum += h.GetBucket(x);
-  }
-  VLOG(2) << sum;
-}
-BENCHMARK(BM_Histogram32GetBucket0);
-
-void BM_Histogram32GetBucket1(benchmark::State& state) {
-  Histogram<uint32_t, uint32_t> h(/*min=*/100, /*shift=*/3);
-  uint32_t x = 150;
-  uint64_t sum = 0;
-  for (auto s : state) {
-    testing::DoNotOptimize(x);
-    sum += h.GetBucket(x);
-  }
-  VLOG(2) << sum;
-}
-BENCHMARK(BM_Histogram32GetBucket1);
-
-void BM_Histogram32GetBucket012(benchmark::State& state) {
-  Histogram<uint32_t, uint32_t> h(/*min=*/10, /*shift=*/2);
-  uint32_t x = 0;
-  uint64_t sum = 0;
-  for (auto s : state) {
-    testing::DoNotOptimize(x);
-    sum += h.GetBucket(x);
-    x += 1;
-    x %= 30;
-  }
-  VLOG(2) << sum;
-}
-BENCHMARK(BM_Histogram32GetBucket012);
 
 }  // namespace mogo

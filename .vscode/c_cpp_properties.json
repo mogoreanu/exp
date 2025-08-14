@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/bazel-exp/external/abseil-cpp+",
-                "${workspaceFolder}/bazel-exp/external/googletest+/googletest/include"
+                "${workspaceFolder}/bazel-exp/external/googletest+/googletest/include",
+                "${workspaceFolder}/bazel-exp/external/google_benchmark+/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
