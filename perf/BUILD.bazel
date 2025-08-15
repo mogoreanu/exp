@@ -20,12 +20,22 @@ cc_binary(
 )
 
 cc_library(
+    name = "cycle_clock_utils",
+    hdrs = ["cycle_clock_utils.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@abseil-cpp//absl/time",
+    ],
+)
+
+cc_library(
     name = "tightloop_lib",
     srcs = ["tightloop_lib.cc"],
     hdrs = ["tightloop_lib.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":bits",
+        ":cycle_clock_utils",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/status",
@@ -81,6 +91,7 @@ cc_library(
     hdrs = ["time_histogram.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":cycle_clock_utils",
         "@abseil-cpp//absl/numeric:bits",
         "@abseil-cpp//absl/time",
     ],

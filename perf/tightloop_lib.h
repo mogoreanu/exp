@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "perf/bits.h"
+#include "perf/cycle_clock_utils.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
@@ -14,7 +15,6 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/base/internal/cycleclock.h"
-#include "absl/base/internal/cycleclock_config.h"
 
 ABSL_DECLARE_FLAG(absl::Duration, run_duration);
 ABSL_DECLARE_FLAG(absl::Duration, sleep_duration);
@@ -30,23 +30,6 @@ std::pair<uint64_t, uint64_t> SetupEnvironment();
 // Prints the specified histogram to the console in human-readable format.
 void PrintHistogram(mogo::Histogram64& h);
 
-inline double Frequency() {
-  return absl::base_internal::CycleClock::Frequency();
-}
-
-inline int64_t SecondsToCycles(double seconds) {
-  return static_cast<int64_t>(Frequency() * seconds);
-}
-
-inline int64_t DurationToCycles(absl::Duration duration) {
-  return SecondsToCycles(absl::FDivDuration(duration, absl::Seconds(1)));
-}
-
-inline absl::Duration CyclesToDuration(int64_t cycles) {
-  // TODO(mogo): Check me.
-  return absl::Seconds(cycles / Frequency());
-}
-
 // Will run the tight loop invoking the callback on every iteration.
 // The callback argument is the current cycle clock.
 template <typename T>
@@ -54,8 +37,6 @@ absl::Status RunLoop(T&& callback) {
   auto [cycles_min, cycles_shift] = SetupEnvironment();
 
   mogo::Histogram64 h(cycles_min, cycles_shift);
-  using CycleClock = absl::base_internal::CycleClock;
-
 
   int64_t clocks_prev = CycleClock::Now();
   int64_t clocks_end =

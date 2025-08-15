@@ -5,54 +5,37 @@
 #include <string>
 
 #include "absl/base/internal/cycleclock.h"
+#include "perf/cycle_clock_utils.h"
 
 namespace mogo {
 
 void TimeHistogramSpan::End() {
-  hist_->AddSample(absl::base_internal::CycleClock::Now() - start_cycles_);
+  hist_->AddSample(CycleClock::Now() - start_cycles_);
 }
 
 void TimeHistogramSpan::End(int64_t total_samples) {
-  hist_->AddSamples(total_samples,
-                    absl::base_internal::CycleClock::Now() - start_cycles_);
+  hist_->AddSamples(total_samples, CycleClock::Now() - start_cycles_);
 }
 
 TimeHistogramSpan::TimeHistogramSpan(TimeHistogram* hist)
-    : hist_(hist), start_cycles_(absl::base_internal::CycleClock::Now()) {}
-
-inline double Frequency() {
-  return absl::base_internal::CycleClock::Frequency();
-}
-
-inline int64_t CyclesToUsec(int64_t cycles) {
-  return static_cast<int64_t>(round(cycles * (1e6 / Frequency())));
-}
-
-inline int64_t SecondsToCycles(double seconds) {
-  return static_cast<int64_t>(Frequency() * seconds);
-}
-
-inline int64_t DurationToCycles(absl::Duration duration) {
-  return SecondsToCycles(absl::FDivDuration(duration, absl::Seconds(1)));
-}
+    : hist_(hist), start_cycles_(CycleClock::Now()) {}
 
 TimeHistogram::TimeHistogram(absl::Duration min, absl::Duration step1)
     : cycles_min_(DurationToCycles(min)),
-      cycles_shift_(
-          internal::Fls64(DurationToCycles(step1))) {}
+      cycles_shift_(internal::Fls64(DurationToCycles(step1))) {}
 
 std::string TimeHistogram::ToHumanString(bool cycles) const {
   std::ostringstream s;
 
   // Find the first non-zero bucket.
-  int first_nonzero_bucket = 0;
+  decltype(ABSL_ARRAYSIZE(buckets_)) first_nonzero_bucket = 0;
   while (first_nonzero_bucket < ABSL_ARRAYSIZE(buckets_) &&
          buckets_[first_nonzero_bucket] == 0) {
     ++first_nonzero_bucket;
   }
 
   // Find the last non-zero bucket.
-  int last_nonzero_bucket = ABSL_ARRAYSIZE(buckets_) - 2;
+  auto last_nonzero_bucket = ABSL_ARRAYSIZE(buckets_) - 2;
   while (last_nonzero_bucket >= first_nonzero_bucket &&
          buckets_[last_nonzero_bucket] == 0) {
     --last_nonzero_bucket;
@@ -64,7 +47,7 @@ std::string TimeHistogram::ToHumanString(bool cycles) const {
   // Compute the sum of all non-zero buckets.
   int64_t total_sample_count = buckets_[less_min_bucket];
   int64_t running_sample_count = buckets_[less_min_bucket];
-  for (int i = first_nonzero_bucket; i <= last_nonzero_bucket; ++i) {
+  for (auto i = first_nonzero_bucket; i <= last_nonzero_bucket; ++i) {
     total_sample_count += buckets_[i];
   }
 
@@ -82,7 +65,7 @@ std::string TimeHistogram::ToHumanString(bool cycles) const {
 
   // Print all buckets between first non-zero bucket and last non-zero bucket.
   // We don't want to skip buckets even if they have values with zeroes.
-  for (int i = first_nonzero_bucket; i <= last_nonzero_bucket; ++i) {
+  for (auto i = first_nonzero_bucket; i <= last_nonzero_bucket; ++i) {
     running_sample_count += buckets_[i];
     s << running_sample_count * 100 / total_sample_count << "% \t"
       << buckets_[i] * 100 / total_sample_count << "% \t" << buckets_[i]
