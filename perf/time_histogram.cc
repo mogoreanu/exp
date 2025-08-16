@@ -51,15 +51,17 @@ std::string TimeHistogram::ToHumanString(bool cycles) const {
     total_sample_count += buckets_[i];
   }
 
+  CycleClockUtils ccu;
+
   // Print the special bucket with values smaller than min.
   if (buckets_[less_min_bucket] != 0) {
     s << buckets_[less_min_bucket] * 100 / total_sample_count << "% \t"
       << buckets_[less_min_bucket] * 100 / total_sample_count << "% \t"
       << buckets_[less_min_bucket] << "\t< ";
     if (cycles) {
-      s << CyclesToUsec(cycles_min_) << " cyc\n";
+      s << ccu.CyclesToUsec(cycles_min_) << " cyc\n";
     } else {
-      s << CyclesToUsec(cycles_min_) << " us\n";
+      s << ccu.CyclesToUsec(cycles_min_) << " us\n";
     }
   }
 
@@ -74,8 +76,8 @@ std::string TimeHistogram::ToHumanString(bool cycles) const {
       s << GetElapsedRangeLow(i) << " cyc - " << GetElapsedRangeHigh(i)
         << " cyc\n";
     } else {
-      s << CyclesToUsec(GetElapsedRangeLow(i)) << " us - "
-        << CyclesToUsec(GetElapsedRangeHigh(i)) << " us\n";
+      s << ccu.CyclesToUsec(GetElapsedRangeLow(i)) << " us - "
+        << ccu.CyclesToUsec(GetElapsedRangeHigh(i)) << " us\n";
     }
   }
   return s.str();

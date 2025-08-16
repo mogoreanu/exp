@@ -67,12 +67,14 @@ std::pair<uint64_t, uint64_t> SetupEnvironment() {
   auto flag_dur_min = absl::GetFlag(FLAGS_duration_min);
   auto flag_dur_shift = absl::GetFlag(FLAGS_duration_shift);
 
+  CycleClockUtils ccu;
+
   if (flag_cycles_min >= 0) {
     cycles_min = flag_cycles_min;
   } else if (flag_dur_min >= absl::ZeroDuration()) {
-    cycles_min = DurationToCycles(flag_dur_min);
+    cycles_min = ccu.DurationToCycles(flag_dur_min);
   } else {
-    cycles_min = DurationToCycles(absl::Microseconds(1));
+    cycles_min = ccu.DurationToCycles(absl::Microseconds(1));
     LOG(INFO) << "cycles_min = " << cycles_min;
   }
 
@@ -81,10 +83,10 @@ std::pair<uint64_t, uint64_t> SetupEnvironment() {
     cycles_shift = flag_cycles_shift;
   } else if (flag_dur_shift >= absl::ZeroDuration()) {
     // If explicit shift in microseconds was specified use it.
-    cycles_shift = mogo::Fls64(DurationToCycles(flag_dur_shift));
+    cycles_shift = mogo::Fls64(ccu.DurationToCycles(flag_dur_shift));
   } else if (flag_dur_min >= absl::ZeroDuration()) {
     // If we're interested in microseconds, use microsecond granularity.
-    cycles_shift = mogo::Fls64(DurationToCycles(absl::Microseconds(1)));
+    cycles_shift = mogo::Fls64(ccu.DurationToCycles(absl::Microseconds(1)));
   } else {
     cycles_shift = mogo::Fls64(cycles_min);
     LOG(INFO) << "cycles_shift = " << cycles_shift;
@@ -187,18 +189,17 @@ void PrintHistogram(mogo::Histogram64& h) {
   }
 
   int64_t total_sample_count = h.total();
+  CycleClockUtils ccu;
 
   LOG(INFO) << "Cycles per microsecond: "
-            << DurationToCycles(absl::Microseconds(1));
+            << ccu.DurationToCycles(absl::Microseconds(1));
 
   if (absl::GetFlag(FLAGS_print_csv)) {
     std::cout << "CSV data:" << std::endl;
     std::cout << "Count,Cycles,Microseconds" << std::endl;
     for (int i = first_nonzero_bucket; i <= last_nonzero_bucket; ++i) {
       std::cout << h.value_at_pos(i) << "," << h.range_max_pos(i) << ","
-                << absl::ToDoubleMicroseconds(
-                       CyclesToDuration(h.range_max_pos(i)))
-                << std::endl;
+                << ccu.CyclesToUsec(h.range_max_pos(i)) << std::endl;
     }
     std::cout << std::endl << "Human readable data:" << std::endl;
   }
@@ -211,7 +212,7 @@ void PrintHistogram(mogo::Histogram64& h) {
       table.AddRow(
           {absl::StrCat(h.value_at_pos(i)),
            absl::StrCat(h.range_max_pos(i), " cyc"),
-           absl::StrCat(CyclesToDuration(h.range_max_pos(i))),
+           absl::StrCat(ccu.CyclesToDuration(h.range_max_pos(i))),
            absl::StrCat(h.value_at_pos(i) * 100 / total_sample_count),
            absl::StrCat(h.value_at_pos(i) * 100 / total_sample_count)});
     } else {
@@ -219,8 +220,8 @@ void PrintHistogram(mogo::Histogram64& h) {
           {absl::StrCat(h.value_at_pos(i)),
            absl::StrCat(h.range_min_pos(i), " cyc - ", h.range_max_pos(i),
                         " cyc"),
-           absl::StrCat(CyclesToDuration(h.range_min_pos(i)), " - ",
-                        CyclesToDuration(h.range_max_pos(i))),
+           absl::StrCat(ccu.CyclesToDuration(h.range_min_pos(i)), " - ",
+                        ccu.CyclesToDuration(h.range_max_pos(i))),
            absl::StrCat(running_sample_count * 100 / total_sample_count),
            absl::StrCat(h.value_at_pos(i) * 100 / total_sample_count)});
     }

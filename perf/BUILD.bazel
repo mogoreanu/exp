@@ -21,9 +21,11 @@ cc_binary(
 
 cc_library(
     name = "cycle_clock_utils",
+    srcs = ["cycle_clock_utils.cc"],
     hdrs = ["cycle_clock_utils.h"],
     visibility = ["//visibility:public"],
     deps = [
+        "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/time",
     ],
 )
@@ -63,6 +65,7 @@ cc_test(
     srcs = ["tightloop_test.cc"],
     deps = [
         ":bits",
+        ":cycle_clock_utils",
         ":time_histogram",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/random",
