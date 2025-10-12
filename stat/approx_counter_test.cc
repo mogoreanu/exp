@@ -7,15 +7,14 @@ bazel test stat:approx_counter_test --test_output=streamed
 #include <stddef.h>
 
 #include <cstdint>
+#include <deque>
 #include <vector>
 
 #include "absl/log/log.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-// #include "cloud/util/sizes.h"
 #include "gtest/gtest.h"
 // #include "stats/base/timeseries.h"
-// #include "util/gtl/chunked_queue.h"
 
 namespace mogo {
 
@@ -185,52 +184,55 @@ approx=41 timeseries=47 actual=41
 approx=41 timeseries=35 actual=41
 approx=41 timeseries=46 actual=41
 approx=41 timeseries=39 actual=41
+
+bazel test stat:approx_counter_test --test_output=streamed \
+  --test_filter=ThroughputCounterTest.DisplayThroughput
  */
-// TEST_F(ThroughputCounterTest, DisplayThroughput) {
-//   absl::Time simulated_now = absl::Now();
-//   ApproxCounter approx_throughput_counter(simulated_now);
+TEST_F(ThroughputCounterTest, DisplayThroughput) {
+  absl::Time simulated_now = absl::Now();
+  ApproxCounter approx_throughput_counter(simulated_now);
 
-//   TimeSeries<int64_t> time_series_counter;
-//   gtl::chunked_queue<absl::Time> io_times;
+  // TimeSeries<int64_t> time_series_counter;
+  std::deque<absl::Time> io_times;
 
-//   absl::Time start_time = simulated_now;
-//   absl::Time end_time = simulated_now + absl::Seconds(30);
+  absl::Time start_time = simulated_now;
+  absl::Time end_time = simulated_now + absl::Seconds(30);
 
-//   absl::Time last_log_time = start_time;
+  absl::Time last_log_time = start_time;
 
-//   int c = 0;
-//   while (simulated_now < end_time) {
-//     // Move time forward with some jitter.
-//     if (c % 2 == 0) {
-//       simulated_now += absl::Milliseconds(1);
-//     } else {
-//       simulated_now += absl::Milliseconds(9);
-//     }
-//     if (c % 40 == 0) {
-//       simulated_now += absl::Milliseconds(500);
-//     }
+  int c = 0;
+  while (simulated_now < end_time) {
+    // Move time forward with some jitter.
+    if (c % 2 == 0) {
+      simulated_now += absl::Milliseconds(1);
+    } else {
+      simulated_now += absl::Milliseconds(9);
+    }
+    if (c % 40 == 0) {
+      simulated_now += absl::Milliseconds(500);
+    }
 
-//     // Clean up IOs that are older than 1 second.
-//     absl::Time one_sec_ago = simulated_now - absl::Seconds(1);
-//     while (!io_times.empty() && io_times.front() < one_sec_ago) {
-//       io_times.pop_front();
-//     }
+    // Clean up IOs that are older than 1 second.
+    absl::Time one_sec_ago = simulated_now - absl::Seconds(1);
+    while (!io_times.empty() && io_times.front() < one_sec_ago) {
+      io_times.pop_front();
+    }
 
-//     approx_throughput_counter.RecordRequest(1, simulated_now);
-//     time_series_counter._Add(1, simulated_now);
-//     io_times.push_back(simulated_now);
-//     ++c;
+    approx_throughput_counter.RecordRequest(1, simulated_now);
+    // time_series_counter._Add(1, simulated_now);
+    io_times.push_back(simulated_now);
+    ++c;
 
-//     if (last_log_time < one_sec_ago) {
-//       LOG(INFO) << "approx="
-//                 << approx_throughput_counter.GetBytesPerSecond(simulated_now)
-//                 << " timeseries="
-//                 << time_series_counter.Get(one_sec_ago, simulated_now)
-//                 << " actual=" << io_times.size();
-//       last_log_time = simulated_now;
-//     }
-//   }
-// }
+    if (last_log_time < one_sec_ago) {
+      LOG(INFO) << "approx="
+                << approx_throughput_counter.GetBytesPerSecond(simulated_now)
+                // << " timeseries="
+                // << time_series_counter.Get(one_sec_ago, simulated_now)
+                << " actual=" << io_times.size();
+      last_log_time = simulated_now;
+    }
+  }
+}
 
 TEST_P(ThroughputCounterTest, LongIntervalTest) {
   const absl::Duration interval = GetParam();
