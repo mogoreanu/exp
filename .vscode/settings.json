@@ -2,5 +2,15 @@
     "C_Cpp.clang_format_style": "Google",
     "editor.rulers": [
         80
-    ]
+    ],
+    "[c]": {
+        "editor.detectIndentation": false,
+        "editor.tabSize": 2,
+        "editor.insertSpaces": false,
+        "editor.rulers": [80,100]
+    },
+    "files.associations": {
+        "*.bt": "c"
+    },
+    "editor.detectIndentation": false,
 }

@@ -24,7 +24,7 @@ kretfunc:vmlinux:nvme_setup_cmd
     printf("kfunc:vmlinux:nvme_setup_cmd disk_name: %s opcode: %x cid: %d.\n", 
              $ns->disk->disk_name, $nvme_cmd->common.opcode, 
                    $nvme_cmd->common.command_id);
-	}
+  }
   @start[$req] = nsecs;
 
 }
