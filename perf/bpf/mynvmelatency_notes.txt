@@ -1,0 +1,44 @@
+https://github.com/brendangregg/bpf-perf-tools-book/blob/master/originals/Ch09_Disks/nvmelatency.bt
+
+static void nvme_log_error(struct request *req)
+{
+	struct nvme_ns *ns = req->q->queuedata;
+	struct nvme_request *nr = nvme_req(req);
+
+	if (ns) {
+		pr_err_ratelimited("%s: %s(0x%x) @ LBA %llu, %u blocks, %s (sct 0x%x / sc 0x%x) %s%s\n",
+		       ns->disk ? ns->disk->disk_name : "?",
+
+
+// blk_status_t nvme_setup_cmd(struct nvme_ns *ns, struct request *req)
+// void nvme_complete_rq(struct request *req)
+
+// /@start[arg0]/
+
+/*
+  $req = (struct request *)arg0;
+  $cmd = (struct nvme_command *)@cmd[arg0];
+  $nvme_cmd = (struct nvme_command *)cmd = nvme_req(req)->cmd;
+
+  $disk = $req->rq_disk;
+  $opcode = $cmd->common.opcode & 0xff;
+  @usecs[$disk->disk_name, @ioopcode[$opcode]] =
+      hist((nsecs - @start[arg0]) / 1000);
+  delete(@start[tid]); delete(@cmd[tid]);
+	*/
+
+
+https://kernelize.xyz/ebpf-bpftrace-oneliner
+https://www.brendangregg.com/BPF/bpftrace-cheat-sheet.html
+
+
+blaze run -c opt cloud/vmm/contrib:vanadium -- --uid= --port=9999 --cpus=44 --ram=16384 \
+  --virtio_scsi_disks ${HOME}/data/vm/ubuntu-2404-lts-amd64--basic-vit-20250130-1716_mogo_spdk.img \
+  --root_ephemeral=false --allow_mwait --nvme_passthrough_bdf=0000:3b:00.1 \
+  --info_log_file=${HOME}/vmm.log --com2=/dev/pts/3 --vmodule=pci_msix=2 --net=yes \
+  --virtio_9p_path=/usr/local/google/home/mogo/src/exp/perf/bpf/
+
+mount -t 9p -o trans=virtio,msize=1048576 ABCD /mnt
+bpftrace /mnt/mynvmelatency.bt
+
+dd if=/dev/nvme0n1 of=/dev/null bs=4K count=1
