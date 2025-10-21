@@ -8,53 +8,44 @@
 BEGIN
 {
   printf("Tracing nvme command latency. Hit Ctrl-C to end.\n");
+	@vlog = false;
 }
-
-/*
-static inline void *blk_mq_rq_to_pdu(struct request *rq)
-{
-	return rq + 1;
-}
-
-struct nvme_request *nvme_req(struct request *req)
-{
-	return blk_mq_rq_to_pdu(req);
-}
-*/
 
 // blk_status_t nvme_setup_cmd(struct nvme_ns *ns, struct request *req)
-// struct nvme_command *cmd = nvme_req(req)->cmd;
-kprobe:nvme_setup_cmd
+// Intercept kretfunc because the command_id field is populated during setup.
+kretfunc:vmlinux:nvme_setup_cmd
 {
-  $ns = (struct nvme_ns *)arg0;
-  $req = (struct request *)arg1;
-  printf("nvme_setup_cmd disk_name: %s.\n", $ns->disk->disk_name);
-	$req_end = $req + 1;
-	$nvme_req = (struct nvme_request *)$req_end;
-	$nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
-  printf("opcode: %x\n", $nvme_cmd->common.opcode);
-  printf("command_id: %x\n", $nvme_cmd->common.command_id); 
-  // printf("nsid: %x\n", ((struct nvme_command *)arg1)->common.nsid); 
-  // printf("cdw10: %x\n", ((struct nvme_command *)arg1)->common.cdw10); 	
+  $ns = args.ns;
+  $req = args.req;
+  $req_end = $req + 1;
+  $nvme_req = (struct nvme_request *)$req_end;
+  $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
+  if (@vlog) {
+    printf("kfunc:vmlinux:nvme_setup_cmd disk_name: %s opcode: %x cid: %d.\n", 
+             $ns->disk->disk_name, $nvme_cmd->common.opcode, 
+                   $nvme_cmd->common.command_id);
+	}
+  @start[$req] = nsecs;
+
 }
 
-/*
-kfunc:nvme_setup_discard {
-    $ns = (struct nvme_ns *)args->ns;
-    printf("NVMe discard on device %s, NSID: %d\n", $ns->disk->disk_name, $ns->nsid);
-}
-*/
-
-kprobe:nvme_complete_rq
+// void nvme_complete_batch_req(struct request *req)
+kfunc:vmlinux:nvme_complete_batch_req 
 {
-  printf("nvme_complete_rq.\n");
+  $req = args.req;
+  $req_end = $req + 1;
+  $nvme_req = (struct nvme_request *)$req_end;
+  $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
+  if (@vlog) {
+    printf("kfunc:vmlinux:nvme_complete_batch_req opcode: %x cid: %d.\n",
+           $nvme_cmd->common.opcode, $nvme_cmd->common.command_id);
+  }
+  @usecs = hist((nsecs - @start[$req]) / 1000);
+  delete(@start[$req]);
 }
 
-kprobe:nvme_cleanup_cmd
-{
-  printf("nvme_cleanup_cmd.\n");
-}
 
 END
 {
+  clear(@start);
 }
