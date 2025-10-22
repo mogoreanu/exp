@@ -53,6 +53,8 @@ fentry:vmlinux:nvme_complete_batch_req,fentry:vmlinux:nvme_complete_rq /@in_flig
 interval:s:1 { 
 	// len(@in_flight_commands) doesn't seem to work on 0.20.2
 	if (@in_flight_count > 0) {
+		// TODO(mogo): Would be nice to print only commands that have benn in-flight
+		// for more than a certain amount of time, but for loop doesn't work.
     print(@in_flight_commands);
 	}
 }  
