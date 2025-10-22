@@ -6,7 +6,7 @@
 
 BEGIN {
   printf("Tracing nvme command latency. Hit Ctrl-C to end.\n");
-	@vlog = false;
+  @vlog = false;
 }
 
 // blk_status_t nvme_setup_cmd(struct nvme_ns *ns, struct request *req)
@@ -45,5 +45,5 @@ fentry:vmlinux:nvme_complete_batch_req /@start[args.req]/ {
 
 END {
   clear(@start); 
-	clear(@vlog);
+  clear(@vlog);
 }

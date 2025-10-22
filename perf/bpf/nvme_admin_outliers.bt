@@ -6,8 +6,8 @@
 
 BEGIN {
   printf("Tracing nvme command latency. Hit Ctrl-C to end.\n");
-  @vlog = true;
-	@in_flight_count = 0;
+  @vlog = false;
+  @in_flight_count = 0;
 }
 
 // blk_status_t nvme_setup_cmd(struct nvme_ns *ns, struct request *req)
@@ -19,7 +19,7 @@ fexit:vmlinux:nvme_setup_cmd {
   $nvme_req = (struct nvme_request *)$req_end;
   $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
   $cid = $nvme_cmd->common.command_id;
-	$opc = $nvme_cmd->common.opcode;
+  $opc = $nvme_cmd->common.opcode;
   if (@vlog) {
     if ($ns->disk->disk_name == "") {
       printf("kfunc:vmlinux:nvme_setup_cmd admin opcode: %x cid: %d.\n", 
@@ -30,7 +30,7 @@ fexit:vmlinux:nvme_setup_cmd {
     }
   }
   @in_flight_commands[$req] = (nsecs, $cid, $opc);
-	@in_flight_count++;
+  @in_flight_count++;
 }
 
 // void nvme_complete_batch_req(struct request *req)
@@ -47,16 +47,16 @@ fentry:vmlinux:nvme_complete_batch_req,fentry:vmlinux:nvme_complete_rq /@in_flig
   }
   @usecs = hist((nsecs - @in_flight_commands[$req].0) / 1000);
   delete(@in_flight_commands[$req]);
-	@in_flight_count--;
+  @in_flight_count--;
 }
 
 interval:s:1 { 
-	// len(@in_flight_commands) doesn't seem to work on 0.20.2
-	if (@in_flight_count > 0) {
-		// TODO(mogo): Would be nice to print only commands that have benn in-flight
-		// for more than a certain amount of time, but for loop doesn't work.
+  // len(@in_flight_commands) doesn't seem to work on 0.20.2
+  if (@in_flight_count > 0) {
+    // TODO(mogo): Would be nice to print only commands that have benn in-flight
+    // for more than a certain amount of time, but for loop doesn't work.
     print(@in_flight_commands);
-	}
+  }
 }  
 
 /*

@@ -3,14 +3,19 @@
     "editor.rulers": [
         80
     ],
+    "files.associations": {
+        "*.bt": "bpftrace"
+    },
+    "[bpftrace]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+        "editor.detectIndentation": false
+    },    
     "[c]": {
         "editor.detectIndentation": false,
         "editor.tabSize": 2,
         "editor.insertSpaces": false,
         "editor.rulers": [80,100]
-    },
-    "files.associations": {
-        "*.bt": "c"
     },
     "editor.detectIndentation": false,
 }
