@@ -3,18 +3,15 @@
 #include <linux/blkdev.h>
 #include <linux/nvme.h>
 #include <linux/nvme_ioctl.h>
-// #include <drivers/nvme/host/nvme.h>
 
-BEGIN
-{
+BEGIN {
   printf("Tracing nvme command latency. Hit Ctrl-C to end.\n");
 	@vlog = false;
 }
 
 // blk_status_t nvme_setup_cmd(struct nvme_ns *ns, struct request *req)
 // Intercept kretfunc because the command_id field is populated during setup.
-kretfunc:vmlinux:nvme_setup_cmd
-{
+fexit:vmlinux:nvme_setup_cmd {
   $ns = args.ns;
   $req = args.req;
   $req_end = $req + 1;
@@ -30,8 +27,9 @@ kretfunc:vmlinux:nvme_setup_cmd
 }
 
 // void nvme_complete_batch_req(struct request *req)
-kfunc:vmlinux:nvme_complete_batch_req 
-{
+// Intercept only when there's a corresponding start entry.
+// TODO(mogo): /has_key(@start, args.req)/ doesn't seem to work.
+fentry:vmlinux:nvme_complete_batch_req /@start[args.req]/ {
   $req = args.req;
   $req_end = $req + 1;
   $nvme_req = (struct nvme_request *)$req_end;
@@ -45,7 +43,7 @@ kfunc:vmlinux:nvme_complete_batch_req
 }
 
 
-END
-{
-  clear(@start);
+END {
+  clear(@start); 
+	clear(@vlog);
 }

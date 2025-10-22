@@ -30,6 +30,7 @@ static void nvme_log_error(struct request *req)
 
 https://kernelize.xyz/ebpf-bpftrace-oneliner
 https://www.brendangregg.com/BPF/bpftrace-cheat-sheet.html
+https://github.com/bpftrace/bpftrace/blob/master/docs/reference_guide.md
 
 
 blaze run -c opt cloud/vmm/contrib:vanadium -- --uid= --port=9999 --cpus=44 --ram=16384 \
@@ -42,3 +43,144 @@ mount -t 9p -o trans=virtio,msize=1048576 ABCD /mnt
 bpftrace /mnt/mynvmelatency.bt
 
 dd if=/dev/nvme0n1 of=/dev/null bs=4K count=1
+
+
+cat /sys/kernel/debug/kprobes/list
+
+bpftrace -I /usr/src/linux-headers-$(uname -r)/ /mnt/mynvmelatency.bt
+
+
+dd if=/dev/nvme0n1 of=/dev/null bs=4K count=1 iflag=direct
+dd if=/dev/zero of=/dev/nvme0n1 bs=4K count=1 oflag=direct
+
+
+fio --name=read_lat_1 --thread=1 \
+  --ioengine=libaio --size=12K --filesize=100% --direct=1 --randrepeat=0 --norandommap=1 \
+    --filename=/dev/nvme0n1   --rw=randread --iodepth=1 --bs=4K
+
+sudo bpftrace -l | grep nvme.*cmd    
+
+root@Ubuntu2404:~# sudo bpftrace -l | grep nvme.*cmd
+kfunc:vmlinux:__probestub_nvme_setup_cmd
+kfunc:vmlinux:__traceiter_nvme_setup_cmd
+kfunc:vmlinux:nvme_cleanup_cmd
+kfunc:vmlinux:nvme_cmd_allowed
+kfunc:vmlinux:nvme_dev_uring_cmd
+kfunc:vmlinux:nvme_ns_chr_uring_cmd
+kfunc:vmlinux:nvme_ns_chr_uring_cmd_iopoll
+kfunc:vmlinux:nvme_ns_head_chr_uring_cmd
+kfunc:vmlinux:nvme_ns_uring_cmd
+kfunc:vmlinux:nvme_setup_cmd
+kfunc:vmlinux:nvme_submit_sync_cmd
+kfunc:vmlinux:nvme_trace_parse_admin_cmd
+kfunc:vmlinux:nvme_trace_parse_fabrics_cmd
+kfunc:vmlinux:nvme_trace_parse_nvm_cmd
+kfunc:vmlinux:nvme_uring_cmd_end_io
+kfunc:vmlinux:nvme_uring_cmd_io
+kfunc:vmlinux:nvme_user_cmd64
+kprobe:__nvme_submit_sync_cmd
+kprobe:__probestub_nvme_setup_cmd
+kprobe:__traceiter_nvme_setup_cmd
+kprobe:nvme_cleanup_cmd
+kprobe:nvme_cmd_allowed
+kprobe:nvme_dev_uring_cmd
+kprobe:nvme_ns_chr_uring_cmd
+kprobe:nvme_ns_chr_uring_cmd_iopoll
+kprobe:nvme_ns_head_chr_uring_cmd
+kprobe:nvme_ns_uring_cmd
+kprobe:nvme_setup_cmd
+kprobe:nvme_submit_sync_cmd
+kprobe:nvme_submit_user_cmd
+kprobe:nvme_trace_parse_admin_cmd
+kprobe:nvme_trace_parse_fabrics_cmd
+kprobe:nvme_trace_parse_nvm_cmd
+kprobe:nvme_uring_cmd_end_io
+kprobe:nvme_uring_cmd_io
+kprobe:nvme_user_cmd.isra.0
+kprobe:nvme_user_cmd64
+rawtracepoint:nvme_setup_cmd
+tracepoint:nvme:nvme_setup_cmd
+
+
+root@Ubuntu2404:~# sudo bpftrace -l | grep nvme.*complete
+kfunc:vmlinux:__probestub_nvme_complete_rq
+kfunc:vmlinux:__traceiter_nvme_complete_rq
+kfunc:vmlinux:nvme_complete_async_event
+kfunc:vmlinux:nvme_complete_batch_req
+kfunc:vmlinux:nvme_complete_rq
+kfunc:vmlinux:nvme_pci_complete_batch
+kfunc:vmlinux:nvme_pci_complete_rq
+kprobe:__probestub_nvme_complete_rq
+kprobe:__traceiter_nvme_complete_rq
+kprobe:nvme_complete_async_event
+kprobe:nvme_complete_batch_req
+kprobe:nvme_complete_rq
+kprobe:nvme_pci_complete_batch
+kprobe:nvme_pci_complete_rq
+rawtracepoint:nvme_complete_rq
+tracepoint:nvme:nvme_complete_rq
+
+
+root@Ubuntu2404:~# perf list | grep nvme
+  nvme:nvme_async_event                              [Tracepoint event]
+  nvme:nvme_complete_rq                              [Tracepoint event]
+  nvme:nvme_setup_cmd                                [Tracepoint event]
+  nvme:nvme_sq 
+
+https://unix.stackexchange.com/questions/772857/where-do-i-trace-nvme-io-within-the-linux-driver
+root@Ubuntu2404:~# perf trace -e nvme:nvme_\*
+    0.000 fio/3218 nvme:nvme_setup_cmd(disk: "nvme0n1", qid: 3, opcode: 2, fctype: 1, cid: 448, nsid: 1, cdw10: 132542552314041)
+    0.333 fio/3218 nvme:nvme_setup_cmd(disk: "nvme0n1", qid: 3, opcode: 2, fctype: 1, cid: 4544, nsid: 1, cdw10: 132542552314193)
+    0.482 fio/3218 nvme:nvme_setup_cmd(disk: "nvme0n1", qid: 3, opcode: 2, fctype: 1, cid: 8640, nsid: 1, cdw10: 132542552314345)
+    0.205 :0/0 nvme:nvme_sq(disk: "nvme0n1", qid: 3, sq_head: 756, sq_tail: 756)
+    0.289 :0/0 nvme:nvme_complete_rq(disk: "nvme0n1", qid: 3, cid: 448)
+    0.427 :0/0 nvme:nvme_sq(disk: "nvme0n1", qid: 3, sq_head: 757, sq_tail: 757)
+    0.456 :0/0 nvme:nvme_complete_rq(disk: "nvme0n1", qid: 3, cid: 4544)
+    0.584 :0/0 nvme:nvme_sq(disk: "nvme0n1", qid: 3, sq_head: 758, sq_tail: 758)
+    0.608 :0/0 nvme:nvme_complete_rq(disk: "nvme0n1", qid: 3, cid: 8640)
+
+`perf list`
+
+https://bpftrace.org/hol/kernel-probes
+https://docs.kernel.org/bpf/kfuncs.html
+
+"third_party/linux_tools/src/tools/lib/bpf/libbpf.h" -file:third_party
+google3/net/bpf/core/event/bpf_event.h
+
+https://github.com/libbpf/libbpf-bootstrap/blob/master/README.md
+https://github.com/bpftrace/bpftrace
+
+Kernel stack:
+https://github.com/brendangregg/bpf-perf-tools-book/blob/master/originals/Ch09_Disks/biostacks.bt
+@reqstack[arg0] = kstack;
+
+every 1 second
+https://github.com/brendangregg/bpf-perf-tools-book/blob/master/originals/Ch09_Disks/biopattern.bt
+tracepoint:raw_syscalls:sys_enter { @syscalls = count(); }
+interval:1s { print(@syscalls); clear(@syscalls); }
+interval:s:1
+
+print time 
+https://github.com/brendangregg/bpf-perf-tools-book/blob/master/originals/Ch09_Disks/biopattern.bt
+time("%H:%M:%S ");
+
+userspace app
+https://github.com/brendangregg/bpf-perf-tools-book/blob/master/originals/Ch13_Applications/mysqld_clat.bt
+usdt:/usr/sbin/mysqld:mysql:command__start
+
+attach multiple, print probe name
+https://github.com/bpftrace/bpftrace/blob/master/docs/language.md#probes
+kprobe:tcp_* {
+  printf("Entered: %s\n", probe);
+}
+
+probe sampling
+https://github.com/bpftrace/bpftrace/blob/master/docs/language.md#hardware
+hardware:cache-misses:1e6 { @[pid] = count(); }
+
+fentry and fexit instead of kfunc and kretfunc respectively
+https://github.com/bpftrace/bpftrace/blob/master/docs/language.md#fentry-and-fexit
+
+tid - threadid
+
+BPFTRACE_KERNEL_SOURCE and also BPFTRACE_KERNEL_BUILD
