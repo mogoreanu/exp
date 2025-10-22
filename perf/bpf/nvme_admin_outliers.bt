@@ -1,0 +1,87 @@
+#!/usr/bin/bpftrace
+
+#include <linux/blkdev.h>
+#include <linux/nvme.h>
+#include <linux/nvme_ioctl.h>
+
+BEGIN {
+  printf("Tracing nvme command latency. Hit Ctrl-C to end.\n");
+	@vlog = true;
+}
+
+// blk_status_t nvme_setup_cmd(struct nvme_ns *ns, struct request *req)
+// Intercept kretfunc because the command_id field is populated during setup.
+fexit:vmlinux:nvme_setup_cmd {
+  $ns = args.ns;
+  $req = args.req;
+  $req_end = $req + 1;
+  $nvme_req = (struct nvme_request *)$req_end;
+  $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
+	if ($ns->disk->disk_name == "") {
+    printf("kfunc:vmlinux:nvme_setup_cmd admin opcode: %x cid: %d.\n", 
+             $nvme_cmd->common.opcode, 
+                   $nvme_cmd->common.command_id);
+	}
+  if (@vlog) {
+    printf("kfunc:vmlinux:nvme_setup_cmd disk_name: %s opcode: %x cid: %d.\n", 
+             $ns->disk->disk_name, $nvme_cmd->common.opcode, 
+                   $nvme_cmd->common.command_id);
+  }
+  @start[$req] = nsecs;
+}
+
+// void nvme_complete_batch_req(struct request *req)
+// Intercept only when there's a corresponding start entry.
+// TODO(mogo): /has_key(@start, args.req)/ doesn't seem to work.
+fentry:vmlinux:nvme_complete_batch_req /@start[args.req]/ {
+  $req = args.req;
+  $req_end = $req + 1;
+  $nvme_req = (struct nvme_request *)$req_end;
+  $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
+  if (@vlog) {
+    printf("kfunc:vmlinux:nvme_complete_batch_req opcode: %x cid: %d.\n",
+           $nvme_cmd->common.opcode, $nvme_cmd->common.command_id);
+  }
+  @usecs = hist((nsecs - @start[$req]) / 1000);
+  delete(@start[$req]);
+}
+
+// void nvme_complete_rq(struct request *req)
+fentry:vmlinux:nvme_complete_rq /@start[args.req]/ {
+  $req = args.req;
+  $req_end = $req + 1;
+  $nvme_req = (struct nvme_request *)$req_end;
+  $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
+  if (@vlog) {
+    printf("kfunc:vmlinux:nvme_complete_rq opcode: %x cid: %d.\n",
+           $nvme_cmd->common.opcode, $nvme_cmd->common.command_id);
+  }
+  @usecs = hist((nsecs - @start[$req]) / 1000);
+  delete(@start[$req]);
+}
+
+interval:s:1 { 
+	for ($kv : @start) {
+		print($kv);
+		// $req = (struct request *)@start[i];
+		// $req_end = $req + 1;
+		// $nvme_req = (struct nvme_request *)$req_end;
+		// $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
+		// if (@vlog) {
+		// 	printf("inflight opcode: %x cid: %d.\n",
+		// 				$nvme_cmd->common.opcode, $nvme_cmd->common.command_id);
+		// }
+
+	}	
+}
+
+/*
+fentry:vmlinux:nvme_* {
+  printf("Entered: %s\n", probe);
+}
+*/
+
+END {
+  clear(@start); 
+	clear(@vlog);
+}
