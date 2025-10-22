@@ -6,7 +6,8 @@
 
 BEGIN {
   printf("Tracing nvme command latency. Hit Ctrl-C to end.\n");
-	@vlog = true;
+  @vlog = true;
+	@in_flight_count = 0;
 }
 
 // blk_status_t nvme_setup_cmd(struct nvme_ns *ns, struct request *req)
@@ -17,23 +18,25 @@ fexit:vmlinux:nvme_setup_cmd {
   $req_end = $req + 1;
   $nvme_req = (struct nvme_request *)$req_end;
   $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
-	if ($ns->disk->disk_name == "") {
-    printf("kfunc:vmlinux:nvme_setup_cmd admin opcode: %x cid: %d.\n", 
-             $nvme_cmd->common.opcode, 
-                   $nvme_cmd->common.command_id);
-	}
+  $cid = $nvme_cmd->common.command_id;
+	$opc = $nvme_cmd->common.opcode;
   if (@vlog) {
-    printf("kfunc:vmlinux:nvme_setup_cmd disk_name: %s opcode: %x cid: %d.\n", 
-             $ns->disk->disk_name, $nvme_cmd->common.opcode, 
-                   $nvme_cmd->common.command_id);
+    if ($ns->disk->disk_name == "") {
+      printf("kfunc:vmlinux:nvme_setup_cmd admin opcode: %x cid: %d.\n", 
+               $opc, $cid);
+    } else {
+      printf("kfunc:vmlinux:nvme_setup_cmd io disk_name: %s opcode: %x cid: %d.\n", 
+             $ns->disk->disk_name, $opc, $cid);
+    }
   }
-  @start[$req] = nsecs;
+  @in_flight_commands[$req] = (nsecs, $cid, $opc);
+	@in_flight_count++;
 }
 
 // void nvme_complete_batch_req(struct request *req)
 // Intercept only when there's a corresponding start entry.
-// TODO(mogo): /has_key(@start, args.req)/ doesn't seem to work.
-fentry:vmlinux:nvme_complete_batch_req /@start[args.req]/ {
+// TODO(mogo): /has_key(@in_flight_commands, args.req)/ doesn't seem to work.
+fentry:vmlinux:nvme_complete_batch_req,fentry:vmlinux:nvme_complete_rq /@in_flight_commands[args.req].0/ {
   $req = args.req;
   $req_end = $req + 1;
   $nvme_req = (struct nvme_request *)$req_end;
@@ -42,38 +45,17 @@ fentry:vmlinux:nvme_complete_batch_req /@start[args.req]/ {
     printf("kfunc:vmlinux:nvme_complete_batch_req opcode: %x cid: %d.\n",
            $nvme_cmd->common.opcode, $nvme_cmd->common.command_id);
   }
-  @usecs = hist((nsecs - @start[$req]) / 1000);
-  delete(@start[$req]);
-}
-
-// void nvme_complete_rq(struct request *req)
-fentry:vmlinux:nvme_complete_rq /@start[args.req]/ {
-  $req = args.req;
-  $req_end = $req + 1;
-  $nvme_req = (struct nvme_request *)$req_end;
-  $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
-  if (@vlog) {
-    printf("kfunc:vmlinux:nvme_complete_rq opcode: %x cid: %d.\n",
-           $nvme_cmd->common.opcode, $nvme_cmd->common.command_id);
-  }
-  @usecs = hist((nsecs - @start[$req]) / 1000);
-  delete(@start[$req]);
+  @usecs = hist((nsecs - @in_flight_commands[$req].0) / 1000);
+  delete(@in_flight_commands[$req]);
+	@in_flight_count--;
 }
 
 interval:s:1 { 
-	for ($kv : @start) {
-		print($kv);
-		// $req = (struct request *)@start[i];
-		// $req_end = $req + 1;
-		// $nvme_req = (struct nvme_request *)$req_end;
-		// $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
-		// if (@vlog) {
-		// 	printf("inflight opcode: %x cid: %d.\n",
-		// 				$nvme_cmd->common.opcode, $nvme_cmd->common.command_id);
-		// }
-
-	}	
-}
+	// len(@in_flight_commands) doesn't seem to work on 0.20.2
+	if (@in_flight_count > 0) {
+    print(@in_flight_commands);
+	}
+}  
 
 /*
 fentry:vmlinux:nvme_* {
@@ -82,6 +64,6 @@ fentry:vmlinux:nvme_* {
 */
 
 END {
-  clear(@start); 
-	clear(@vlog);
+  clear(@in_flight_commands); 
+  clear(@vlog);
 }
