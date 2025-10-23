@@ -40,7 +40,7 @@ blaze run -c opt cloud/vmm/contrib:vanadium -- --uid= --port=9999 --cpus=44 --ra
   --virtio_9p_path=/usr/local/google/home/mogo/src/exp/perf/bpf/
 
 mount -t 9p -o trans=virtio,msize=1048576 ABCD /mnt
-bpftrace /mnt/mynvmelatency.bt
+bpftrace /mnt/nvme_latency.bt
 
 dd if=/dev/nvme0n1 of=/dev/null bs=4K count=1
 

@@ -7,6 +7,20 @@
 BEGIN {
   printf("Tracing nvme command latency. Hit Ctrl-C to end.\n");
   @vlog = false;
+
+  @filter_disk_name = getopt("disk_name", "");
+
+	@ioopcode[0x00] = "nvme_cmd_flush";
+	@ioopcode[0x01] = "nvme_cmd_write";
+	@ioopcode[0x02] = "nvme_cmd_read";
+	@ioopcode[0x04] = "nvme_cmd_write_uncor";
+	@ioopcode[0x05] = "nvme_cmd_compare";
+	@ioopcode[0x08] = "nvme_cmd_write_zeroes";
+	@ioopcode[0x09] = "nvme_cmd_dsm";
+	@ioopcode[0x0d] = "nvme_cmd_resv_register";
+	@ioopcode[0x0e] = "nvme_cmd_resv_report";
+	@ioopcode[0x11] = "nvme_cmd_resv_acquire";
+	@ioopcode[0x15] = "nvme_cmd_resv_release";
 }
 
 // blk_status_t nvme_setup_cmd(struct nvme_ns *ns, struct request *req)
@@ -22,14 +36,14 @@ fexit:vmlinux:nvme_setup_cmd {
              $ns->disk->disk_name, $nvme_cmd->common.opcode, 
                    $nvme_cmd->common.command_id);
   }
-  @start[$req] = nsecs;
+  @in_flight_req[$req] = nsecs;
 
 }
 
 // void nvme_complete_batch_req(struct request *req)
 // Intercept only when there's a corresponding start entry.
-// TODO(mogo): /has_key(@start, args.req)/ doesn't seem to work.
-fentry:vmlinux:nvme_complete_batch_req /@start[args.req]/ {
+// TODO(mogo): /has_key(@in_flight_req, args.req)/ doesn't seem to work.
+fentry:vmlinux:nvme_complete_batch_req /@in_flight_req[args.req]/ {
   $req = args.req;
   $req_end = $req + 1;
   $nvme_req = (struct nvme_request *)$req_end;
@@ -38,12 +52,12 @@ fentry:vmlinux:nvme_complete_batch_req /@start[args.req]/ {
     printf("kfunc:vmlinux:nvme_complete_batch_req opcode: %x cid: %d.\n",
            $nvme_cmd->common.opcode, $nvme_cmd->common.command_id);
   }
-  @usecs = hist((nsecs - @start[$req]) / 1000);
-  delete(@start[$req]);
+  @req_lat_us = hist((nsecs - @in_flight_req[$req]) / 1000, 4);
+  delete(@in_flight_req[$req]);
 }
 
 
 END {
-  clear(@start); 
+  clear(@in_flight_req); 
   clear(@vlog);
 }
