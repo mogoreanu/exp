@@ -1,9 +1,6 @@
 // This tool spins a tight background loop measuring the time it takes to
 // complete a loop in CPU cycles and micoseconds. The output is a histogram of
 // elapsed time repartition
-// Similar to http://google3/third_party/py/perfkitbenchmarker/data/rt_bench.cc
-// Doc: go/vcpu-jitter
-// Doc: go/gce-compute-jitter-roadmap
 //
 // http://btorpey.github.io/blog/2014/02/18/clock-sources-in-linux/
 // cat /proc/cpuinfo | grep -i tsc
@@ -21,37 +18,15 @@
 bazel run -c opt perf:tightloop -- --run_duration=10s \
    --cycles_min=10 --cycles_shift=0
 
+# If you want a bit more predictability, set the performance profile and pin the
+# tool to a particular core.
+
 sudo apt-get install cpufrequtils
 sudo cpufreq-set -r -g performance
 
 bazel build -c opt --dynamic_mode=off perf:tightloop && \
 taskset -c 0 bazel-bin/perf/tightloop --cycles_min=10 --cycles_shift=0 \
   --run_duration=10s
-
-# mogo::FLS
-Count      Cyc                      Microseconds             % tot  % this
-----------------------------------------------------------------------------
-33583801   10 cyc                   6.75ns                   2      2
-332388966  10 cyc - 11 cyc          6.75ns - 7.25ns          27     24
-415668813  11 cyc - 12 cyc          7.25ns - 8ns             58     31
-543357981  12 cyc - 14 cyc          8ns - 9.25ns             99     40
-5879542    14 cyc - 18 cyc          9.25ns - 12ns            99     0
-72941      18 cyc - 26 cyc          12ns - 17.25ns           99     0
-3142       26 cyc - 42 cyc          17.25ns - 28ns           99     0
-856        42 cyc - 74 cyc          28ns - 49.5ns            99     0
-16699      74 cyc - 138 cyc         49.5ns - 92.25ns         99     0
-2522       138 cyc - 266 cyc        92.25ns - 177.75ns       99     0
-6937       266 cyc - 522 cyc        177.75ns - 348.75ns      99     0
-102        522 cyc - 1034 cyc       348.75ns - 691ns         99     0
-367        1034 cyc - 2058 cyc      691ns - 1.37525us        99     0
-13         2058 cyc - 4106 cyc      1.37525us - 2.74375us    99     0
-905        4106 cyc - 8202 cyc      2.74375us - 5.48075us    99     0
-1245       8202 cyc - 16394 cyc     5.48075us - 10.955us     99     0
-1245       16394 cyc - 32778 cyc    10.955us - 21.90325us    99     0
-83         32778 cyc - 65546 cyc    21.90325us - 43.79975us  99     0
-14         65546 cyc - 131082 cyc   43.79975us - 87.5925us   99     0
-2          131082 cyc - 262154 cyc  87.5925us - 175.1785us   100    0
-----------------------------------------------------------------------------
 
 # To benchmark the sleep wake-up consistency
 bazel run -c opt perf:tightloop -- --run_duration=10s \
@@ -81,6 +56,32 @@ int main(int argc, char** argv) {
   return EXIT_SUCCESS;
 }
 /*
+
+# mogo::FLS
+Count      Cyc                      Microseconds             % tot  % this
+----------------------------------------------------------------------------
+33583801   10 cyc                   6.75ns                   2      2
+332388966  10 cyc - 11 cyc          6.75ns - 7.25ns          27     24
+415668813  11 cyc - 12 cyc          7.25ns - 8ns             58     31
+543357981  12 cyc - 14 cyc          8ns - 9.25ns             99     40
+5879542    14 cyc - 18 cyc          9.25ns - 12ns            99     0
+72941      18 cyc - 26 cyc          12ns - 17.25ns           99     0
+3142       26 cyc - 42 cyc          17.25ns - 28ns           99     0
+856        42 cyc - 74 cyc          28ns - 49.5ns            99     0
+16699      74 cyc - 138 cyc         49.5ns - 92.25ns         99     0
+2522       138 cyc - 266 cyc        92.25ns - 177.75ns       99     0
+6937       266 cyc - 522 cyc        177.75ns - 348.75ns      99     0
+102        522 cyc - 1034 cyc       348.75ns - 691ns         99     0
+367        1034 cyc - 2058 cyc      691ns - 1.37525us        99     0
+13         2058 cyc - 4106 cyc      1.37525us - 2.74375us    99     0
+905        4106 cyc - 8202 cyc      2.74375us - 5.48075us    99     0
+1245       8202 cyc - 16394 cyc     5.48075us - 10.955us     99     0
+1245       16394 cyc - 32778 cyc    10.955us - 21.90325us    99     0
+83         32778 cyc - 65546 cyc    21.90325us - 43.79975us  99     0
+14         65546 cyc - 131082 cyc   43.79975us - 87.5925us   99     0
+2          131082 cyc - 262154 cyc  87.5925us - 175.1785us   100    0
+----------------------------------------------------------------------------
+
 # absl::countl_zero
 Interesting that more samples < 12 cycles, but there's some noise around
 18-26 cycles. Guess is that this is due to the extra branch.
