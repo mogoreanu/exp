@@ -36,6 +36,7 @@ Ctrl + P
 ```
 ext install ms-vscode.cpptools-extension-pack
 ext install BazelBuild.vscode-bazel
+ext install bpfdeploy.bpftrace
 ```
 
 ## Useful libraries / binaries
