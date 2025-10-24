@@ -81,8 +81,8 @@ tracepoint:nvme:nvme_complete_rq
 }
 
 END {
-    clear(@start_info);
-    clear(@ioopcode);
+  clear(@start_info);
+  clear(@ioopcode);
 }
 
 /*
