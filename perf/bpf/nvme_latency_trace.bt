@@ -1,93 +1,88 @@
 #!/usr/bin/sudo bpftrace
 
-/*
- * This script traces NVMe I/O latency and generates histograms
- * broken down by: (controller_id, opcode, io_size_bucket).
- */
+// Each power of 2 will be split into 2^HIST_EXTRA_BUCKETS linear sub-buckets.
+#define HIST_EXTRA_BUCKETS 1
 
-/*
- * Store start time, opcode, and I/O size for I/O commands.
- * We filter for qid > 0 (I/O queues) to ignore admin commands.
- */
-tracepoint:nvme:nvme_setup_cmd
-    /args->qid > 0/
-{
-    /* Key: (controller_id, queue_id, command_id) */
-    $key = (args->ctrl_id, args->qid, args->cid);
+// Specifies whether the script should create the histogram with string keys,
+// causes `misaligned stack access off` error on some bpftrace versions.
+#define USE_STR 0
 
+BEGIN {
+  if (USE_STR) {
+    @ioopcode[0x00] = "flush";
+    @ioopcode[0x01] = "write";
+    @ioopcode[0x02] = "read";
+    @ioopcode[0x04] = "write_uncor";
+    @ioopcode[0x05] = "compare";
+    @ioopcode[0x08] = "write_zeroes";
+    @ioopcode[0x09] = "dsm";
+    @ioopcode[0x0d] = "resv_register";
+    @ioopcode[0x0e] = "resv_report";
+    @ioopcode[0x11] = "resv_acquire";
+    @ioopcode[0x15] = "resv_release";
+  }
+}
+
+tracepoint:nvme:nvme_setup_cmd /args->qid > 0/ {
     /*
      * Get number of logical blocks (NLB) from cdw12.
      * cdw12 is bytes 8,9,10,11 in the args->cdw10[24] array.
      * We must reconstruct the u32 from four u8s (assuming little-endian).
      */
-    $nlb_b0 = (u32)args->cdw10[8];
-    $nlb_b1 = (u32)args->cdw10[9];
-    $nlb_b2 = (u32)args->cdw10[10];
-    $nlb_b3 = (u32)args->cdw10[11];
+    $nlb_b0 = args->cdw10[8];
+    $nlb_b1 = args->cdw10[9];
+    $nlb_b2 = args->cdw10[10];
+    $nlb_b3 = args->cdw10[11];
     $nlb = ($nlb_b3 << 24) | ($nlb_b2 << 16) | ($nlb_b1 << 8) | $nlb_b0;
 
-    /*
-     * Calculate I/O size. nlb is 0-based, so add 1.
-     * We assume 512-byte blocks here.
-     * Change 512 to 4096 if you use 4K native drives.
-     */
     $nlb++;
-    // $io_size_bytes = $nlb * 512;
 
-    /* Store the data we need at completion time */
-    @start_time[$key] = nsecs;
-    @start_opcode[$key] = args->opcode;
-    @start_size[$key] = $nlb; // bpf_log2l($io_size_bytes); 
+    @start_info[args->ctrl_id, args->qid, args->cid] = 
+        (nsecs, args->opcode, $nlb);
 }
 
-/*
- * Complete request: find start time, calc latency, and record in histogram.
- */
-tracepoint:nvme:nvme_complete_rq
-{
-    /* Recreate the same key to look up our data */
-    $key = (args->ctrl_id, args->qid, args->cid);
+tracepoint:nvme:nvme_complete_rq 
+/@start_info[args->ctrl_id, args->qid, args->cid].0/ {
+  $start_tuple = @start_info[args->ctrl_id, args->qid, args->cid];
+  $start_ns = $start_tuple.0;
+  $opcode = $start_tuple.1;
+  $nlb = $start_tuple.2;
 
-    /* Check if we are tracking this command (i.e., if it's an I/O cmd) */
-    if (@start_time[$key]) {
-        /* Get stored data */
-        $start_ns = @start_time[$key];
-        $opcode = @start_opcode[$key];
-        $size_nlb = @start_size[$key];
-        
-        /* Calculate latency in microseconds */
-        $latency_us = (nsecs - $start_ns) / 1000;
+  $latency_us = (nsecs - $start_ns) / 1000;
 
-        /*
-         * Record in histogram.
-         * Key: (controller_id, opcode, io_size_bucket)
-         * Value: histogram of latencies in microseconds
-         */
-        @latency_hist[args->ctrl_id, $opcode, $size_nlb] = hist($latency_us);
-
-        /* Clean up maps to save memory */
-        delete(@start_time[$key]);
-        delete(@start_opcode[$key]);
-        delete(@start_size[$key]);
+  if (USE_STR) {
+    // Assuming LBA size of 4K.
+    $nlb_str = "";
+    if ($nlb <=  4) {
+      $nlb_str = "<=16K";
+    } else if ($nlb <= 16) {
+      $nlb_str = "<=64K";
+    } else {
+      $nlb_str = " >64K"
     }
+    if ($opcode == 0) {
+      // Flush does not have NLB.
+      $nlb_str = "-";
+    }
+    @latency_hist_str[args->ctrl_id, @ioopcode[$opcode], $nlb_str] = 
+        hist($latency_us, HIST_EXTRA_BUCKETS);
+  } else {
+    $nlb_class = 0;
+    if ($nlb > 16) {
+      $nlb_class = 2;
+    } else if ($nlb > 4) {
+      $nlb_class = 1;
+    } 
+    @latency_hist[args->ctrl_id, $opcode, $nlb_class] = 
+        hist($latency_us, HIST_EXTRA_BUCKETS);
+  }
+
+  delete(@start_info[args->ctrl_id, args->qid, args->cid]);
 }
 
-/*
- * On exit (Ctrl+C), print all histograms.
- */
-END
-{
-    /*
-     * This will print a histogram for each unique combination
-     * of (controller_id, opcode, size_bucket) seen.
-     */
-    print(@latency_hist);
-
-    /* Clear all maps */
-    clear(@start_time);
-    clear(@start_opcode);
-    clear(@start_size);
-    clear(@latency_hist);
+END {
+    clear(@start_info);
+    clear(@ioopcode);
 }
 
 /*
@@ -134,11 +129,4 @@ format:
 print fmt: "nvme%d: %sqid=%d, cmdid=%u, res=%#llx, retries=%u, flags=0x%x, status=%#x", REC->ctrl_id, nvme_trace_disk_name(p, REC->disk), REC->qid, REC->cid, REC->result, REC->retries, REC->flags, REC->status
 */
 
-// tracepoint:nvme:nvme_setup_cmd {
-//   printf("comm: %s, pid: %d, disk: %s, opcode: 0x%x\n", 
-//          comm, 
-//          pid,
-//          args->disk,
-//          args->opcode
-//         );
-// }
+
