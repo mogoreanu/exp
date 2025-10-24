@@ -41,6 +41,7 @@ blaze run -c opt cloud/vmm/contrib:vanadium -- --uid= --port=9999 --cpus=44 --ra
 
 mount -t 9p -o trans=virtio,msize=1048576 ABCD /mnt
 bpftrace /mnt/nvme_latency.bt
+bpftrace /mnt/nvme_latency_trace.bt
 
 dd if=/dev/nvme0n1 of=/dev/null bs=4K count=1
 
@@ -58,7 +59,7 @@ fio --name=read_lat_1 --thread=1 \
   --ioengine=libaio --size=12K --filesize=100% --direct=1 --randrepeat=0 --norandommap=1 \
     --filename=/dev/nvme0n1   --rw=randread --iodepth=1 --bs=4K
 
-sudo bpftrace -l | grep nvme.*cmd    
+sudo bpftrace -l | grep nvme.*cmd
 
 root@Ubuntu2404:~# sudo bpftrace -l | grep nvme.*cmd
 kfunc:vmlinux:__probestub_nvme_setup_cmd
@@ -184,3 +185,6 @@ https://github.com/bpftrace/bpftrace/blob/master/docs/language.md#fentry-and-fex
 tid - threadid
 
 BPFTRACE_KERNEL_SOURCE and also BPFTRACE_KERNEL_BUILD
+
+
+cat /sys/kernel/debug/tracing/events/nvme/nvme_setup_cmd/format
