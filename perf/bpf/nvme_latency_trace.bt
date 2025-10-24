@@ -1,0 +1,144 @@
+#!/usr/bin/sudo bpftrace
+
+/*
+ * This script traces NVMe I/O latency and generates histograms
+ * broken down by: (controller_id, opcode, io_size_bucket).
+ */
+
+/*
+ * Store start time, opcode, and I/O size for I/O commands.
+ * We filter for qid > 0 (I/O queues) to ignore admin commands.
+ */
+tracepoint:nvme:nvme_setup_cmd
+    /args->qid > 0/
+{
+    /* Key: (controller_id, queue_id, command_id) */
+    $key = (args->ctrl_id, args->qid, args->cid);
+
+    /*
+     * Get number of logical blocks (NLB) from cdw12.
+     * cdw12 is bytes 8,9,10,11 in the args->cdw10[24] array.
+     * We must reconstruct the u32 from four u8s (assuming little-endian).
+     */
+    $nlb_b0 = (u32)args->cdw10[8];
+    $nlb_b1 = (u32)args->cdw10[9];
+    $nlb_b2 = (u32)args->cdw10[10];
+    $nlb_b3 = (u32)args->cdw10[11];
+    $nlb = ($nlb_b3 << 24) | ($nlb_b2 << 16) | ($nlb_b1 << 8) | $nlb_b0;
+
+    /*
+     * Calculate I/O size. nlb is 0-based, so add 1.
+     * We assume 512-byte blocks here.
+     * Change 512 to 4096 if you use 4K native drives.
+     */
+    $nlb++;
+    // $io_size_bytes = $nlb * 512;
+
+    /* Store the data we need at completion time */
+    @start_time[$key] = nsecs;
+    @start_opcode[$key] = args->opcode;
+    @start_size[$key] = $nlb; // bpf_log2l($io_size_bytes); 
+}
+
+/*
+ * Complete request: find start time, calc latency, and record in histogram.
+ */
+tracepoint:nvme:nvme_complete_rq
+{
+    /* Recreate the same key to look up our data */
+    $key = (args->ctrl_id, args->qid, args->cid);
+
+    /* Check if we are tracking this command (i.e., if it's an I/O cmd) */
+    if (@start_time[$key]) {
+        /* Get stored data */
+        $start_ns = @start_time[$key];
+        $opcode = @start_opcode[$key];
+        $size_nlb = @start_size[$key];
+        
+        /* Calculate latency in microseconds */
+        $latency_us = (nsecs - $start_ns) / 1000;
+
+        /*
+         * Record in histogram.
+         * Key: (controller_id, opcode, io_size_bucket)
+         * Value: histogram of latencies in microseconds
+         */
+        @latency_hist[args->ctrl_id, $opcode, $size_nlb] = hist($latency_us);
+
+        /* Clean up maps to save memory */
+        delete(@start_time[$key]);
+        delete(@start_opcode[$key]);
+        delete(@start_size[$key]);
+    }
+}
+
+/*
+ * On exit (Ctrl+C), print all histograms.
+ */
+END
+{
+    /*
+     * This will print a histogram for each unique combination
+     * of (controller_id, opcode, size_bucket) seen.
+     */
+    print(@latency_hist);
+
+    /* Clear all maps */
+    clear(@start_time);
+    clear(@start_opcode);
+    clear(@start_size);
+    clear(@latency_hist);
+}
+
+/*
+cat /sys/kernel/debug/tracing/events/nvme/nvme_setup_cmd/format
+name: nvme_setup_cmd
+ID: 1503
+format:
+	field:unsigned short common_type;	offset:0;	size:2;	signed:0;
+	field:unsigned char common_flags;	offset:2;	size:1;	signed:0;
+	field:unsigned char common_preempt_count;	offset:3;	size:1;	signed:0;
+	field:int common_pid;	offset:4;	size:4;	signed:1;
+
+	field:char disk[32];	offset:8;	size:32;	signed:0;
+	field:int ctrl_id;	offset:40;	size:4;	signed:1;
+	field:int qid;	offset:44;	size:4;	signed:1;
+	field:u8 opcode;	offset:48;	size:1;	signed:0;
+	field:u8 flags;	offset:49;	size:1;	signed:0;
+	field:u8 fctype;	offset:50;	size:1;	signed:0;
+	field:u16 cid;	offset:52;	size:2;	signed:0;
+	field:u32 nsid;	offset:56;	size:4;	signed:0;
+	field:bool metadata;	offset:60;	size:1;	signed:0;
+	field:u8 cdw10[24];	offset:61;	size:24;	signed:0;
+
+print fmt: "nvme%d: %sqid=%d, cmdid=%u, nsid=%u, flags=0x%x, meta=0x%x, cmd=(%s %s)", REC->ctrl_id, nvme_trace_disk_name(p, REC->disk), REC->qid, REC->cid, REC->nsid, REC->flags, REC->metadata, ((REC->opcode) == nvme_fabrics_command ? __print_symbolic(REC->fctype, { nvme_fabrics_type_property_set, "nvme_fabrics_type_property_set" }, { nvme_fabrics_type_connect, "nvme_fabrics_type_connect" }, { nvme_fabrics_type_property_get, "nvme_fabrics_type_property_get" }, { nvme_fabrics_type_auth_send, "nvme_fabrics_type_auth_send" }, { nvme_fabrics_type_auth_receive, "nvme_fabrics_type_auth_receive" }) : ((REC->qid) ? __print_symbolic(REC->opcode, { nvme_cmd_flush, "nvme_cmd_flush" }, { nvme_cmd_write, "nvme_cmd_write" }, { nvme_cmd_read, "nvme_cmd_read" }, { nvme_cmd_write_uncor, "nvme_cmd_write_uncor" }, { nvme_cmd_compare, "nvme_cmd_compare" }, { nvme_cmd_write_zeroes, "nvme_cmd_write_zeroes" }, { nvme_cmd_dsm, "nvme_cmd_dsm" }, { nvme_cmd_verify, "nvme_cmd_verify" }, { nvme_cmd_resv_register, "nvme_cmd_resv_register" }, { nvme_cmd_resv_report, "nvme_cmd_resv_report" }, { nvme_cmd_resv_acquire, "nvme_cmd_resv_acquire" }, { nvme_cmd_resv_release, "nvme_cmd_resv_release" }, { nvme_cmd_zone_mgmt_send, "nvme_cmd_zone_mgmt_send" }, { nvme_cmd_zone_mgmt_recv, "nvme_cmd_zone_mgmt_recv" }, { nvme_cmd_zone_append, "nvme_cmd_zone_append" }) : __print_symbolic(REC->opcode, { nvme_admin_delete_sq, "nvme_admin_delete_sq" }, { nvme_admin_create_sq, "nvme_admin_create_sq" }, { nvme_admin_get_log_page, "nvme_admin_get_log_page" }, { nvme_admin_delete_cq, "nvme_admin_delete_cq" }, { nvme_admin_create_cq, "nvme_admin_create_cq" }, { nvme_admin_identify, "nvme_admin_identify" }, { nvme_admin_abort_cmd, "nvme_admin_abort_cmd" }, { nvme_admin_set_features, "nvme_admin_set_features" }, { nvme_admin_get_features, "nvme_admin_get_features" }, { nvme_admin_async_event, "nvme_admin_async_event" }, { nvme_admin_ns_mgmt, "nvme_admin_ns_mgmt" }, { nvme_admin_activate_fw, "nvme_admin_activate_fw" }, { nvme_admin_download_fw, "nvme_admin_download_fw" }, { nvme_admin_dev_self_test, "nvme_admin_dev_self_test" }, { nvme_admin_ns_attach, "nvme_admin_ns_attach" }, { nvme_admin_keep_alive, "nvme_admin_keep_alive" }, { nvme_admin_directive_send, "nvme_admin_directive_send" }, { nvme_admin_directive_recv, "nvme_admin_directive_recv" }, { nvme_admin_virtual_mgmt, "nvme_admin_virtual_mgmt" }, { nvme_admin_nvme_mi_send, "nvme_admin_nvme_mi_send" }, { nvme_admin_nvme_mi_recv, "nvme_admin_nvme_mi_recv" }, { nvme_admin_dbbuf, "nvme_admin_dbbuf" }, { nvme_admin_format_nvm, "nvme_admin_format_nvm" }, { nvme_admin_security_send, "nvme_admin_security_send" }, { nvme_admin_security_recv, "nvme_admin_security_recv" }, { nvme_admin_sanitize_nvm, "nvme_admin_sanitize_nvm" }, { nvme_admin_get_lba_status, "nvme_admin_get_lba_status" }))), ((REC->opcode) == nvme_fabrics_command ? nvme_trace_parse_fabrics_cmd(p, REC->fctype, REC->cdw10) : ((REC->qid) ? nvme_trace_parse_nvm_cmd(p, REC->opcode, REC->cdw10) : nvme_trace_parse_admin_cmd(p, REC->opcode, REC->cdw10)))
+
+cat /sys/kernel/debug/tracing/events/nvme/nvme_complete_rq/format
+name: nvme_complete_rq
+ID: 1502
+format:
+	field:unsigned short common_type;	offset:0;	size:2;	signed:0;
+	field:unsigned char common_flags;	offset:2;	size:1;	signed:0;
+	field:unsigned char common_preempt_count;	offset:3;	size:1;	signed:0;
+	field:int common_pid;	offset:4;	size:4;	signed:1;
+
+	field:char disk[32];	offset:8;	size:32;	signed:0;
+	field:int ctrl_id;	offset:40;	size:4;	signed:1;
+	field:int qid;	offset:44;	size:4;	signed:1;
+	field:int cid;	offset:48;	size:4;	signed:1;
+	field:u64 result;	offset:56;	size:8;	signed:0;
+	field:u8 retries;	offset:64;	size:1;	signed:0;
+	field:u8 flags;	offset:65;	size:1;	signed:0;
+	field:u16 status;	offset:66;	size:2;	signed:0;
+
+print fmt: "nvme%d: %sqid=%d, cmdid=%u, res=%#llx, retries=%u, flags=0x%x, status=%#x", REC->ctrl_id, nvme_trace_disk_name(p, REC->disk), REC->qid, REC->cid, REC->result, REC->retries, REC->flags, REC->status
+*/
+
+// tracepoint:nvme:nvme_setup_cmd {
+//   printf("comm: %s, pid: %d, disk: %s, opcode: 0x%x\n", 
+//          comm, 
+//          pid,
+//          args->disk,
+//          args->opcode
+//         );
+// }
