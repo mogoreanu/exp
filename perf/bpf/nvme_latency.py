@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+# sudo apt-get install bpfcc-tools linux-headers-$(uname -r)
+# python3 nvme_latency.py
+
 from __future__ import print_function
 from bcc import BPF
 from bcc.utils import printb
