@@ -1,23 +1,30 @@
 #!/usr/bin/python3
 
-# sudo apt-get install bpfcc-tools linux-headers-$(uname -r)
-# python3 nvme_latency.py
+r"""
+An example script that uses BCC to attach to NVMe kprobes and record NVMe 
+request latency.
+
+# Install the prerequisites
+sudo apt-get install bpfcc-tools linux-headers-$(uname -r)
+
+# Run the script
+sudo python3 perf/bpf/nvme_latency_bcc_kp.py
+# Press Ctrl-C to end the script and print the latency histograms.
+"""
 
 from __future__ import print_function
 from bcc import BPF
 from bcc.utils import printb
 from time import sleep
 
-# load BPF program
-b = BPF(src_file = "nvme_latency.c")
+# Load BPF program.
+b = BPF(src_file = "nvme_latency_bcc_kp.c")
 
-# if BPF.get_kprobe_functions(b'__blk_account_io_done'):
 b.attach_kretprobe(event="nvme_setup_cmd", fn_name="nvme_setup_cmd_return")
 b.attach_kprobe(event="nvme_complete_batch_req", fn_name="nvme_complete_rq")
 b.attach_kprobe(event="nvme_complete_rq", fn_name="nvme_complete_rq")
 
-# header
-print("Tracing... Hit Ctrl-C to end.")
+print("Tracing nvme requests... Hit Ctrl-C to stop and print the results.")
 
 # trace until Ctrl-C
 while 1:
