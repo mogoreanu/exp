@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "linux"
+		},
+		{
+			"path": "linux-build"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.h": "c",
+			"type_traits": "c"
+		},
+		"C_Cpp.clang_format_fallbackStyle": "Google",
+		"C_Cpp.clang_format_style": "Google"
+	}
+}
