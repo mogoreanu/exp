@@ -78,17 +78,17 @@ BEGIN {
 // Save the arguments to be able to access them in kretprobe. This pain is not
 // necessary in kfunc / kretfunc, but not all kernels have that.
 kprobe:nvme_setup_cmd {
-  @args_map[(tid, 0)] = arg0;  // struct nvme_ns *ns
-  @args_map[(tid, 1)] = arg1;  // struct request *req
+  @args_map[tid, 0] = arg0;  // struct nvme_ns *ns
+  @args_map[tid, 1] = arg1;  // struct request *req
 }
 
 // Bind to `nvme_setup_cmd` return because the command_id field is populated in 
 // the method itself. Strictly speaking not necessary for latency accounting.
 kretprobe:nvme_setup_cmd {
-  $ns = (struct nvme_ns*)@args_map[(tid, 0)]; // args.ns;
-  $req = (struct request*)@args_map[(tid, 1)]; // args.req;
-  delete(@args_map, (tid, 0));
-  delete(@args_map, (tid, 1));
+  $ns = (struct nvme_ns*)@args_map[tid, 0]; // args.ns;
+  $req = (struct request*)@args_map[tid, 1]; // args.req;
+  delete(@args_map[tid, 0]);
+  delete(@args_map[tid, 1]);
   $req_end = $req + 1;
   $nvme_req = (struct nvme_request *)$req_end;
   $nvme_cmd = (struct nvme_command *)$nvme_req->cmd;
@@ -113,7 +113,7 @@ kprobe:nvme_complete_batch_req,kprobe:nvme_complete_rq /@in_flight_req[(struct r
     printf("kfunc:vmlinux:nvme_complete_batch_req opcode: %x cid: %d.\n",
            $nvme_cmd->common.opcode, $nvme_cmd->common.command_id);
   }
-  @req_lat_us = hist((nsecs - @in_flight_req[$req]) / 1000, 2);
+  @req_lat_us = hist((nsecs - @in_flight_req[$req]) / 1000);
   delete(@in_flight_req[$req]);
 }
 
