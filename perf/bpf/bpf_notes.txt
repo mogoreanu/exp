@@ -238,4 +238,24 @@ print fmt: "nvme%d: %sqid=%d, cmdid=%u, res=%#llx, retries=%u, flags=0x%x, statu
 https://docs.ebpf.io/concepts/core/
 bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
 
+BPF ringbuff / ring buff  vs perfbuff / perf buff
+https://nakryiko.com/posts/bpf-ringbuf/
+https://github.com/anakryiko/bpf-ringbuf-examples
 
+https://patchwork.ozlabs.org/project/netdev/patch/20200529075424.3139988-5-andriin@fb.com/
+Single-producer, parallel producer
+==================================
+rb-libbpf            12.054 ± 0.320M/s (drops 0.000 ± 0.000M/s)
+rb-custom            8.158 ± 0.118M/s (drops 0.001 ± 0.003M/s)
+pb-libbpf            0.931 ± 0.007M/s (drops 0.000 ± 0.000M/s)
+pb-custom            0.965 ± 0.003M/s (drops 0.000 ± 0.000M/s)
+
+Single-producer, parallel producer, sampled notification
+========================================================
+rb-libbpf            11.563 ± 0.067M/s (drops 0.000 ± 0.000M/s)
+rb-custom            15.895 ± 0.076M/s (drops 0.000 ± 0.000M/s)
+pb-libbpf            9.889 ± 0.032M/s (drops 0.000 ± 0.000M/s)
+pb-custom            9.866 ± 0.028M/s (drops 0.000 ± 0.000M/s)
+
+
+https://blogs.oracle.com/linux/intro-to-bcc-2
