@@ -259,3 +259,23 @@ pb-custom            9.866 ± 0.028M/s (drops 0.000 ± 0.000M/s)
 
 
 https://blogs.oracle.com/linux/intro-to-bcc-2
+
+
+root@mogoreanu:/usr/local/google/home/mogo# strace -ebpf python3 /tmp/nvme_latency_bcc_kp.py
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_SOCKET_FILTER, insn_cnt=2, insns=0x7ffc1d4a6ca0, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(0, 0, 0), prog_flags=0, prog_name="", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=0, func_info_rec_size=0, func_info=NULL, func_info_cnt=0, line_info_rec_size=0, line_info=NULL, line_info_cnt=0, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 148) = 3
+bpf(BPF_BTF_LOAD, {btf="\237\353\1\0\30\0\0\0\0\0\0\0\224\r\0\0\224\r\0\0J\16\0\0\0\0\0\0\0\0\0\2"..., btf_log_buf=NULL, btf_size=7158, btf_log_size=0, btf_log_level=0}, 40) = 3
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_SOCKET_FILTER, insn_cnt=2, insns=0x7ffc1d4a6970, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(0, 0, 0), prog_flags=0, prog_name="libbpf_nametest", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=0, func_info_rec_size=0, func_info=NULL, func_info_cnt=0, line_info_rec_size=0, line_info=NULL, line_info_cnt=0, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 148) = 4
+bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_ARRAY, key_size=4, value_size=8, max_entries=64, map_flags=0, inner_map_fd=0, map_name="req_lat_hist_us", map_ifindex=0, btf_fd=3, btf_key_type_id=11, btf_value_type_id=13, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = 4
+bpf(BPF_MAP_CREATE, {map_type=BPF_MAP_TYPE_HASH, key_size=8, value_size=8, max_entries=4096, map_flags=0, inner_map_fd=0, map_name="in_flight_reqs", map_ifindex=0, btf_fd=3, btf_key_type_id=1, btf_value_type_id=13, btf_vmlinux_value_type_id=0, map_extra=0}, 80) = 5
+bpf(BPF_PROG_LOAD,
+    {prog_type=BPF_PROG_TYPE_KPROBE, insn_cnt=64, insns=0x7f985a784000,
+    license="GPL", log_level=0, log_size=0, log_buf=NULL,
+    kern_version=KERNEL_VERSION(6, 16, 9), prog_flags=0,
+    prog_name="nvme_setup_cmd_", prog_ifindex=0,
+    expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=3,
+    func_info_rec_size=8, func_info=0x2835e540, func_info_cnt=1,
+    line_info_rec_size=16, line_info=0x2467a0a0, line_info_cnt=31,
+    attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 152) = 6
+bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_KPROBE, insn_cnt=77, insns=0x7f985a784200, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(6, 16, 9), prog_flags=0, prog_name="nvme_complete_r", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=3, func_info_rec_size=8, func_info=0x2835e540, func_info_cnt=1, line_info_rec_size=16, line_info=0x28e0b980, line_info_cnt=32, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 152) = 8
+
+BPF API include/uapi/linux/bpf.h
