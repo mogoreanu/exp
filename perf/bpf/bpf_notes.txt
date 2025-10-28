@@ -279,3 +279,13 @@ bpf(BPF_PROG_LOAD,
 bpf(BPF_PROG_LOAD, {prog_type=BPF_PROG_TYPE_KPROBE, insn_cnt=77, insns=0x7f985a784200, license="GPL", log_level=0, log_size=0, log_buf=NULL, kern_version=KERNEL_VERSION(6, 16, 9), prog_flags=0, prog_name="nvme_complete_r", prog_ifindex=0, expected_attach_type=BPF_CGROUP_INET_INGRESS, prog_btf_fd=3, func_info_rec_size=8, func_info=0x2835e540, func_info_cnt=1, line_info_rec_size=16, line_info=0x28e0b980, line_info_cnt=32, attach_btf_id=0, attach_prog_fd=0, fd_array=NULL}, 152) = 8
 
 BPF API include/uapi/linux/bpf.h
+  bpf_map_lookup_elem
+  bpf_probe_read
+  bpf_trace_printk
+  ...
+
+Documentation/networking/filter.txt
+
+BCC vs libbpf + CO-RE:
+https://pingcap.medium.com/why-we-switched-from-bcc-tools-to-libbpf-tools-for-bpf-performance-analysis-12fa0670e012
+https://facebookmicrosites.github.io/bpf/blog/2020/02/20/bcc-to-libbpf-howto-guide.html#why-libbpf-and-bpf-co-re
