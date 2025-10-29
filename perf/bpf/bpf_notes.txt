@@ -291,3 +291,4 @@ https://pingcap.medium.com/why-we-switched-from-bcc-tools-to-libbpf-tools-for-bp
 https://facebookmicrosites.github.io/bpf/blog/2020/02/20/bcc-to-libbpf-howto-guide.html#why-libbpf-and-bpf-co-re
 
 bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+bpftool btf dump file /sys/kernel/btf/nvme_core format c > nvme_core.h
