@@ -47,27 +47,27 @@ cc_test(
     ],
 )
 
-# cc_library(
-#     name="burst_token_bucket",
-#     hdrs=["burst_token_bucket.h"],
-#     srcs=["burst_token_bucket.cc"],
-#     deps = [
-#         ":simple_token_bucket",
-#         "@abseil-cpp//absl/strings",
-#         "@abseil-cpp//absl/log",
-#         "@abseil-cpp//absl/log:check",
-#         "@abseil-cpp//absl/time",
-#         ],
-# )
+cc_library(
+    name = "throughput_counter",
+    hdrs = ["throughput_counter.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":stat_utils",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
+    ],
+)
 
-# cc_test(
-#     name = "burst_token_bucket_test",
-#     size = "small",
-#     srcs = ["burst_token_bucket_test.cc"],
-#     visibility = ["//visibility:private"],
-#     deps = [
-#         ":burst_token_bucket",
-#         "@googletest//:gtest",
-#         "@googletest//:gtest_main",
-#     ],
-# )
+cc_test(
+    name = "throughput_counter_test",
+    size = "small",
+    srcs = ["throughput_counter_test.cc"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":throughput_counter",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
