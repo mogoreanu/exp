@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "bazel_build_dbg_throughput_counter_test",
+      "type": "shell",
+      "command": "bazel build -c dbg stat:throughput_counter_test",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared",
+        "clear": true
+      },
+      // This helps VSCode understand and surface build errors
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "bazel_build_dbg_discover_target",
+      "type": "shell",
+      "command": ".vscode/file_to_target_map.sh ${file}",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared",
+        "clear": true
+      },
+      // This helps VSCode understand and surface build errors
+      "problemMatcher": ["$gcc"]
+    }
+
+  ]
+}

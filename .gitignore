@@ -3,3 +3,4 @@ bazel-bin
 bazel-exp
 bazel-out
 bazel-testlogs
+.vscode/debug_binary
