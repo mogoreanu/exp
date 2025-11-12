@@ -11,22 +11,33 @@
 #include "absl/base/optimization.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
-// #include "absl/time/clock.h"
-// #include "absl/time/time.h"
-// #include "stat_utils.h"
 
 namespace mogo {
 
+// A lock-free and thread-safe throughput counter. Maintains a circular buffer
+// of spans, each span records the length processed within that span.
+// Users of this class must call `CleanupSpans` periodically to clear out 
+// expired data, if `CleanupSpans` is not called, the counter will wrap around
+// and start reusing old buckets leading to unexpectedly high throughput values.
+// Because the class smears the data over multiple spans, if the class is used 
+// to count IOPS it's recommended to apply a constant multiplier to the values
+// supplied to the record method and then divid the result by the same 
+// multiplier after the data is withdrawn from the GetThroughput method.
 template <int64_t kSpanLengthNs, int kMonitorSpanCount>
 class ThroughputCounter {
  public:
   ThroughputCounter() {}
 
-  explicit ThroughputCounter(int64_t now_ns);
-
   void Record(int64_t len, int64_t end_ns) { Record(len, end_ns, end_ns); }
 
   // Smear the provided length over the time period from `start` to `now`.
+  // If the (end_ns - start_ns) duration exceeds the total monitoring duration
+  // will smear the operation only over the monitoring duration, potentially
+  // reporting values that are greater than expected for very long operations.
+  // Thread-safe, lock-free. Only increments the corresponding spans. The spans
+  // require cleanup in the background, see the `CleanupSpans` method.
+  // Assumes `end_ns` is pretty close to now. If `end_ns` is too far in the
+  // past, for example exceeds several kSpanLengthNs may corrupt the data.
   void Record(int64_t len, int64_t start_ns, int64_t end_ns) {
     int64_t start_span_abs = start_ns / kSpanLengthNs;
     int64_t end_span_abs = end_ns / kSpanLengthNs;
@@ -70,7 +81,6 @@ class ThroughputCounter {
   }
 
   // Get the throughput between the provided `start` time and `now`.
-  // TODO(mogo): Try duration_ns divisible by kSpanLengthNs.
   int64_t GetThroughput(int64_t end_ns) const {
     int64_t duration_ns = 1000000000LL;
     DCHECK_GE(kMonitorDurationNs, duration_ns);
@@ -89,6 +99,12 @@ class ThroughputCounter {
     return total;
   };
 
+  // Cleans up the data that is older than the monitoring duration.
+  // The `Record` method always increments the corresponding spans, this method
+  // needs to be called every kSpanLengthNs to clear out old spans.
+  // If this method has not been called for a long time the `GetThroughput`
+  // will return incorrect data.
+  // Returns the span values that were cleaned up.
   std::vector<int64_t> CleanupSpans(int64_t last_cleanup_ns, int64_t now_ns) {
     int64_t last_unused_span_ns = now_ns - kMonitorDurationNs;
     int64_t last_cleanup_unused_ns = last_cleanup_ns - kMonitorDurationNs;
