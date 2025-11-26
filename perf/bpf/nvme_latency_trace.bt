@@ -1,7 +1,7 @@
 #!/usr/bin/sudo bpftrace
 
 // Each power of 2 will be split into 2^HIST_EXTRA_BUCKETS linear sub-buckets.
-#define HIST_EXTRA_BUCKETS 1
+#define HIST_EXTRA_BUCKETS 3
 
 // Specifies whether the script should create the histogram with string keys,
 // causes `misaligned stack access off` error on some bpftrace versions.
