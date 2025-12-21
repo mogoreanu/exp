@@ -9,5 +9,10 @@
 		{
 			"path": "bazel-exp/external/googletest+/googletest/include/gtest"
 		}
-	]
+	],
+	"settings": {
+		"files.associations": {
+			"*.h": "c",
+		}
+	}
 }
