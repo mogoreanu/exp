@@ -80,29 +80,29 @@ TEST(Test, Clz) {
 
 TEST(TestHistogram32, ZeroRange) {
   Histogram32 h(0, 0);
-  ASSERT_EQ(h.range_max_pos(0), 0);
+  ASSERT_EQ(h.range_max_pos(0), 0ULL);
 
-  ASSERT_EQ(h.range_min_pos(1), 0);
-  ASSERT_EQ(h.range_max_pos(1), 1);
+  ASSERT_EQ(h.range_min_pos(1), 0ULL);
+  ASSERT_EQ(h.range_max_pos(1), 1ULL);
 
-  ASSERT_EQ(h.range_min_pos(2), 1);
-  ASSERT_EQ(h.range_max_pos(2), 2);
+  ASSERT_EQ(h.range_min_pos(2), 1ULL);
+  ASSERT_EQ(h.range_max_pos(2), 2ULL);
 
-  ASSERT_EQ(h.range_min_pos(3), 2);
-  ASSERT_EQ(h.range_max_pos(3), 4);
+  ASSERT_EQ(h.range_min_pos(3), 2ULL);
+  ASSERT_EQ(h.range_max_pos(3), 4ULL);
 
-  ASSERT_EQ(h.range_min_pos(4), 4);
-  ASSERT_EQ(h.range_max_pos(4), 8);
+  ASSERT_EQ(h.range_min_pos(4), 4ULL);
+  ASSERT_EQ(h.range_max_pos(4), 8ULL);
 
-  ASSERT_EQ(h.range_min_pos(5), 8);
-  ASSERT_EQ(h.range_max_pos(5), 16);
+  ASSERT_EQ(h.range_min_pos(5), 8ULL);
+  ASSERT_EQ(h.range_max_pos(5), 16ULL);
 }
 
 #define VALIDATE_POS(h, v, pos)          \
   {                                      \
     (h).Reset();                         \
     (h).Add(v);                          \
-    EXPECT_EQ((h).value_at_pos(pos), 1); \
+    EXPECT_EQ((h).value_at_pos(pos), 1ULL); \
   }
 
 TEST(TestHistogram32, ZeroValue) {
@@ -122,22 +122,22 @@ TEST(TestHistogram32, ZeroValue) {
 TEST(TestHistogram32, MinRange) {
   Histogram32 hmin(7, 0);
 
-  ASSERT_EQ(hmin.range_max_pos(0), 7);
+  ASSERT_EQ(hmin.range_max_pos(0), 7ULL);
 
-  ASSERT_EQ(hmin.range_min_pos(1), 7);
-  ASSERT_EQ(hmin.range_max_pos(1), 8);
+  ASSERT_EQ(hmin.range_min_pos(1), 7ULL);
+  ASSERT_EQ(hmin.range_max_pos(1), 8ULL);
 
-  ASSERT_EQ(hmin.range_min_pos(2), 8);
-  ASSERT_EQ(hmin.range_max_pos(2), 9);
+  ASSERT_EQ(hmin.range_min_pos(2), 8ULL);
+  ASSERT_EQ(hmin.range_max_pos(2), 9ULL);
 
-  ASSERT_EQ(hmin.range_min_pos(3), 9);
-  ASSERT_EQ(hmin.range_max_pos(3), 11);
+  ASSERT_EQ(hmin.range_min_pos(3), 9ULL);
+  ASSERT_EQ(hmin.range_max_pos(3), 11ULL);
 
-  ASSERT_EQ(hmin.range_min_pos(4), 11);
-  ASSERT_EQ(hmin.range_max_pos(4), 15);
+  ASSERT_EQ(hmin.range_min_pos(4), 11ULL);
+  ASSERT_EQ(hmin.range_max_pos(4), 15ULL);
 
-  ASSERT_EQ(hmin.range_min_pos(5), 15);
-  ASSERT_EQ(hmin.range_max_pos(5), 23);
+  ASSERT_EQ(hmin.range_min_pos(5), 15ULL);
+  ASSERT_EQ(hmin.range_max_pos(5), 23ULL);
 }
 
 TEST(TestHistogram32, MinValue) {
@@ -157,22 +157,22 @@ TEST(TestHistogram32, MinValue) {
 TEST(TestHistogram32, ShiftRange) {
   Histogram32 h(/*min=*/1000, /*shift=*/3);
 
-  ASSERT_EQ(h.range_max_pos(0), 1000);
+  ASSERT_EQ(h.range_max_pos(0), 1000ULL);
 
-  ASSERT_EQ(h.range_min_pos(1), 1000);
-  ASSERT_EQ(h.range_max_pos(1), 1008);
+  ASSERT_EQ(h.range_min_pos(1), 1000ULL);
+  ASSERT_EQ(h.range_max_pos(1), 1008ULL);
 
-  ASSERT_EQ(h.range_min_pos(2), 1008);
-  ASSERT_EQ(h.range_max_pos(2), 1016);
+  ASSERT_EQ(h.range_min_pos(2), 1008ULL);
+  ASSERT_EQ(h.range_max_pos(2), 1016ULL);
 
-  ASSERT_EQ(h.range_min_pos(3), 1016);
-  ASSERT_EQ(h.range_max_pos(3), 1032);
+  ASSERT_EQ(h.range_min_pos(3), 1016ULL);
+  ASSERT_EQ(h.range_max_pos(3), 1032ULL);
 
-  ASSERT_EQ(h.range_min_pos(4), 1032);
-  ASSERT_EQ(h.range_max_pos(4), 1064);
+  ASSERT_EQ(h.range_min_pos(4), 1032ULL);
+  ASSERT_EQ(h.range_max_pos(4), 1064ULL);
 
-  ASSERT_EQ(h.range_min_pos(5), 1064);
-  ASSERT_EQ(h.range_max_pos(5), 1128);
+  ASSERT_EQ(h.range_min_pos(5), 1064ULL);
+  ASSERT_EQ(h.range_max_pos(5), 1128ULL);
 }
 
 TEST(TestHistogram32, ShiftValue) {
