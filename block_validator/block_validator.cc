@@ -179,6 +179,18 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  int flags = fcntl(fd, F_GETFL);
+  if (flags == -1) {
+    LOG(ERROR) << "Failed to get file flags: " << errno;
+    return 1;
+  }
+  if ((flags & O_DIRECT) == 0) {
+    LOG(ERROR) << "Failed to verify O_DIRECT flag on target file. "
+                  "The tool must bypass filesystem caching to work properly. "
+                  "Ensure the filesystem supports O_DIRECT.";
+    return 1;
+  }
+
   bool is_block_device = false;
   if (fstat(fd, &st) == 0 && S_ISBLK(st.st_mode)) {
     is_block_device = true;

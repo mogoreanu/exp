@@ -57,18 +57,12 @@ struct ActiveState {
 constexpr uint64_t kTrimBit = 1ULL << 62;
 
 class BlockShard {
- private:
-  std::vector<ActiveState> overflow_states_ ABSL_GUARDED_BY(mutex_);
-  std::vector<uint32_t> free_overflow_indices_ ABSL_GUARDED_BY(mutex_);
-  absl::flat_hash_map<uint64_t, BlockActionLog> action_logs_
-      ABSL_GUARDED_BY(mutex_);
-  absl::Mutex mutex_;
-
  public:
-  bool HasTrim(const std::vector<uint64_t>& states, uint64_t block_idx,
-               uint64_t read_start_time) {
-    absl::MutexLock lock(&mutex_);
-    uint64_t state = states[block_idx];
+  explicit BlockShard(size_t local_blocks) : states_(local_blocks, 0) {}
+
+  bool HasTrim(uint64_t local_idx, uint64_t read_start_time) {
+    absl::MutexLock lock(mutex_);
+    uint64_t state = states_[local_idx];
     if ((state & (1ULL << 63)) == 0) {
       return (state & kTrimBit) != 0;
     } else {
@@ -86,31 +80,52 @@ class BlockShard {
   // if another write is already in-flight or recently completed.
   // Returns true if this write overlaps with another in-flight write to the
   // same block.
-  bool StartWrite(std::vector<uint64_t>& states, uint64_t block_idx,
-                  uint64_t seq, uint64_t start_time,
+  bool StartWrite(uint64_t local_idx, uint64_t seq, uint64_t start_time,
                   absl::Time wall_start_time);
 
   // Registers the completion of a write operation.
   // Overwritten or obsolete WriteRecords are pruned from history based on the
   // `oldest_read` timestamp to prevent unbounded memory growth. If all overlaps
   // have resolved, the block returns to the fast-path state tracking.
-  void EndWrite(std::vector<uint64_t>& states, uint64_t block_idx, uint64_t seq,
-                uint64_t end_time, uint64_t oldest_read,
-                absl::Time wall_end_time);
+  void EndWrite(uint64_t local_idx, uint64_t seq, uint64_t end_time,
+                uint64_t oldest_read, absl::Time wall_end_time);
 
   // Prints the last 5 write actions for the given block.
-  void PrintActionLog(uint64_t block_idx, absl::Time read_wall_start_time);
+  void PrintActionLog(uint64_t local_idx, absl::Time read_wall_start_time);
 
   // Validates whether the given sequence number (`seq`) read from the block
   // is mathematically legal given the current history of overlapping writes.
-  bool IsValidSeq(const std::vector<uint64_t>& states, uint64_t block_idx,
-                  uint64_t seq);
+  bool IsValidSeq(uint64_t local_idx, uint64_t seq);
 
   // Retrieves the start_time, end_time, and overwritten_time for a given valid
   // sequence. Returns true if the sequence is valid, false otherwise.
-  bool GetSeqTimes(const std::vector<uint64_t>& states, uint64_t block_idx,
-                   uint64_t seq, uint64_t& start_time, uint64_t& end_time,
-                   uint64_t& overwritten_time);
+  // `start_time`: The start logical time of the write/trim
+  // `end_time`: The end logical time of the write/trim
+  // `overwritten_time`: The overwrite time, i.e., the logical time when the
+  // *first* write to this block completed. If `overwritten_time` >
+  // `start_time`, it means sequence 0 was not fully overwritten when our read
+  // started.
+  bool GetSeqTimes(uint64_t local_idx, uint64_t seq, uint64_t& start_time,
+                   uint64_t& end_time, uint64_t& overwritten_time);
+
+ private:
+  absl::Mutex mutex_;
+
+  // Fast Path directly tracks block sequence number.
+  // Slow Path (overlapping reads/writes): the highest bit of a state is set
+  // (1ULL << 63). In that case, the lower 63 bits store the overflow_idx.
+  std::vector<uint64_t> states_ ABSL_GUARDED_BY(mutex_);
+
+  // Storage for complex `ActiveState` tracking blocks undergoing concurrent IO.
+  // Indexed by the `overflow_idx` encoded directly into a block's `states_`
+  // uint64_t bucket.
+  std::vector<ActiveState> overflow_states_ ABSL_GUARDED_BY(mutex_);
+
+  // Tracks reclaimed `overflow_idx` items so they can be reused without
+  // unbounded allocation.
+  std::vector<uint32_t> free_overflow_indices_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<uint64_t, BlockActionLog> action_logs_
+      ABSL_GUARDED_BY(mutex_);
 };
 
 // Fills the provided buffer with deterministic verification payload data.

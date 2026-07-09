@@ -106,73 +106,68 @@ TEST(BlockValidatorTest, DetectsWrongBlockIdx) {
 }
 
 TEST(BlockShardTest, ValidateSequenceTracking) {
-  BlockShard shard;
+  BlockShard shard(200);
   uint64_t block_idx = 100;
-
-  // Need to ensure the states vector is large enough.
-  std::vector<uint64_t> states(200, 0);
 
   // Write 1 starts
   uint64_t seq1 = 1;
   uint64_t start_time1 = 10;
-  shard.StartWrite(states, block_idx, seq1, start_time1, absl::Now());
-  EXPECT_TRUE(shard.IsValidSeq(states, block_idx, seq1));
+  shard.StartWrite(block_idx, seq1, start_time1, absl::Now());
+  EXPECT_TRUE(shard.IsValidSeq(block_idx, seq1));
 
   // Write 1 completes
   uint64_t end_time1 = 20;
-  shard.EndWrite(states, block_idx, seq1, end_time1,
+  shard.EndWrite(block_idx, seq1, end_time1,
                  /*oldest_read=*/UINT64_MAX, absl::Now());
-  EXPECT_TRUE(shard.IsValidSeq(states, block_idx, seq1));
+  EXPECT_TRUE(shard.IsValidSeq(block_idx, seq1));
 
   // Write 2 overlaps
   uint64_t seq2 = 2;
   uint64_t start_time2 = 30;
-  shard.StartWrite(states, block_idx, seq2, start_time2, absl::Now());
-  EXPECT_TRUE(shard.IsValidSeq(states, block_idx,
-                               seq1));  // Still valid (was completed)
+  shard.StartWrite(block_idx, seq2, start_time2, absl::Now());
   EXPECT_TRUE(
-      shard.IsValidSeq(states, block_idx, seq2));  // Now valid (in-flight)
+      shard.IsValidSeq(block_idx, seq1));  // Still valid (was completed)
+  EXPECT_TRUE(shard.IsValidSeq(block_idx, seq2));  // Now valid (in-flight)
 
   // Corrupt sequence
-  EXPECT_FALSE(shard.IsValidSeq(states, block_idx, 999));
+  EXPECT_FALSE(shard.IsValidSeq(block_idx, 999));
 }
 
 TEST(BlockShardTest, ValidateTrimSequenceTracking) {
-  BlockShard shard;
+  BlockShard shard(200);
   uint64_t block_idx = 100;
-  std::vector<uint64_t> states(200, 0);
 
   // Write 1 (Real)
   uint64_t seq1 = 1;
   uint64_t start_time1 = 10;
-  shard.StartWrite(states, block_idx, seq1, start_time1, absl::Now());
-  shard.EndWrite(states, block_idx, seq1, 20, UINT64_MAX, absl::Now());
+  shard.StartWrite(block_idx, seq1, start_time1, absl::Now());
+  shard.EndWrite(block_idx, seq1, 20, UINT64_MAX, absl::Now());
 
   // Write 2 (Trim)
   uint64_t seq2 = 2 | kTrimBit;
   uint64_t start_time2 = 30;
-  shard.StartWrite(states, block_idx, seq2, start_time2, absl::Now());
-  shard.EndWrite(states, block_idx, seq2, 40, UINT64_MAX, absl::Now());
+  shard.StartWrite(block_idx, seq2, start_time2, absl::Now());
+  shard.EndWrite(block_idx, seq2, 40, UINT64_MAX, absl::Now());
 
   // Read starts at 50. Since TRIM is active, it should be able to read TRIM.
-  EXPECT_TRUE(shard.HasTrim(states, block_idx, 50));
+  EXPECT_TRUE(shard.HasTrim(block_idx, 50));
   // It should also be able to read seq1 since TRIM doesn't overwrite real data.
-  EXPECT_TRUE(shard.IsValidSeq(states, block_idx, seq1));
+  EXPECT_TRUE(shard.IsValidSeq(block_idx, seq1));
 
   // Write 3 (Real) overwrites everything
   uint64_t seq3 = 3;
   uint64_t start_time3 = 60;
-  shard.StartWrite(states, block_idx, seq3, start_time3, absl::Now());
-  shard.EndWrite(states, block_idx, seq3, 70, UINT64_MAX, absl::Now());
+  shard.StartWrite(block_idx, seq3, start_time3, absl::Now());
+  shard.EndWrite(block_idx, seq3, 70, UINT64_MAX, absl::Now());
 
   // Read starts at 80. seq1 and TRIM should both be completely overwritten.
-  EXPECT_FALSE(shard.HasTrim(states, block_idx, 80));
+  EXPECT_FALSE(shard.HasTrim(block_idx, 80));
   // seq3 is valid.
-  EXPECT_TRUE(shard.IsValidSeq(states, block_idx, seq3));
+  EXPECT_TRUE(shard.IsValidSeq(block_idx, seq3));
 
   // Pruning check: oldest_read = 90. Both seq1 and seq2 should be pruned.
-  shard.EndWrite(states, block_idx, seq3, 70, 90, absl::Now());
-  EXPECT_FALSE(shard.IsValidSeq(states, block_idx, seq1));
+  shard.EndWrite(block_idx, seq3, 70, 90, absl::Now());
+  EXPECT_FALSE(shard.IsValidSeq(block_idx, seq1));
 }
 
 class MockBlockDevice : public BlockDevice {
