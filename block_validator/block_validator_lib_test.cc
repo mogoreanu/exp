@@ -178,7 +178,7 @@ class MockBlockDevice : public BlockDevice {
   bool IsBlockDevice() const override { return is_block_device_; }
 
   absl::Status Pread(void* buf, size_t count, off_t offset) override {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     if (offset + count > data_.size())
       return absl::OutOfRangeError("pread out of bounds");
 
@@ -196,7 +196,7 @@ class MockBlockDevice : public BlockDevice {
   }
 
   absl::Status Pwrite(const void* buf, size_t count, off_t offset) override {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     if (offset + count > data_.size())
       return absl::OutOfRangeError("pwrite out of bounds");
 
@@ -221,7 +221,7 @@ class MockBlockDevice : public BlockDevice {
   }
 
   absl::Status Discard(off_t offset, size_t count) override {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     if (offset + count > data_.size())
       return absl::OutOfRangeError("discard out of bounds");
 
@@ -239,7 +239,7 @@ class MockBlockDevice : public BlockDevice {
   }
 
   void CorruptData(off_t offset, size_t count) {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     for (size_t i = 0; i < count; ++i) {
       if (offset + i < data_.size()) {
         data_[offset + i] ^= 0xFF;
@@ -248,7 +248,7 @@ class MockBlockDevice : public BlockDevice {
   }
 
   void FillWithValidFormatGarbage(uint64_t block_size) {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     for (size_t offset = 0; offset < data_.size(); offset += block_size) {
       uint64_t* ptr = reinterpret_cast<uint64_t*>(data_.data() + offset);
       uint64_t block_idx = offset / block_size;
@@ -259,27 +259,27 @@ class MockBlockDevice : public BlockDevice {
   }
 
   void SetDropNextWrite(bool b) {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     drop_next_write_ = b;
   }
 
   void SetTornNextWrite(bool b) {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     torn_next_write_ = b;
   }
 
   void SetCorruptNextRead(bool b) {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     corrupt_next_read_ = b;
   }
 
   void SetDiscardWritesZeroes(bool b) {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     discard_writes_zeroes_ = b;
   }
 
   void SetIgnoreSomeDiscards(bool b) {
-    absl::MutexLock lock(&mu_);
+    absl::MutexLock lock(mu_);
     ignore_some_discards_ = b;
   }
 
@@ -297,7 +297,7 @@ class MockBlockDevice : public BlockDevice {
 };
 
 TEST(BlockValidatorE2ETest, RunSuccessfulValidation) {
-  MockBlockDevice device(10 * 1024 * 1024, false);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/false);
 
   ValidatorOptions options;
   options.region_offset = 0;
@@ -312,7 +312,7 @@ TEST(BlockValidatorE2ETest, RunSuccessfulValidation) {
 }
 
 TEST(BlockValidatorE2ETest, DetectsCorruption) {
-  MockBlockDevice device(10 * 1024 * 1024, false);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/false);
 
   ValidatorOptions options;
   options.region_offset = 0;
@@ -334,7 +334,7 @@ TEST(BlockValidatorE2ETest, DetectsCorruption) {
 }
 
 TEST(BlockValidatorE2ETest, RunSuccessfulSkipInitValidation) {
-  MockBlockDevice device(10 * 1024 * 1024, false);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/false);
 
   // Fill with garbage
   device.CorruptData(0, 10 * 1024 * 1024);
@@ -353,7 +353,7 @@ TEST(BlockValidatorE2ETest, RunSuccessfulSkipInitValidation) {
 }
 
 TEST(BlockValidatorE2ETest, RunSuccessfulSkipInitValidationWithMultiThreads) {
-  MockBlockDevice device(10 * 1024 * 1024, false);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/false);
 
   // Fill with garbage
   device.CorruptData(0, 10 * 1024 * 1024);
@@ -372,7 +372,7 @@ TEST(BlockValidatorE2ETest, RunSuccessfulSkipInitValidationWithMultiThreads) {
 }
 
 TEST(BlockValidatorE2ETest, DetectsDroppedWriteWithReadBeforeWrite) {
-  MockBlockDevice device(10 * 1024 * 1024, false);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/false);
 
   ValidatorOptions options;
   options.region_offset = 0;
@@ -396,7 +396,7 @@ TEST(BlockValidatorE2ETest, DetectsDroppedWriteWithReadBeforeWrite) {
 }
 
 TEST(BlockValidatorE2ETest, DetectsTornWriteWithReadBeforeWrite) {
-  MockBlockDevice device(10 * 1024 * 1024, false);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/false);
 
   ValidatorOptions options;
   options.region_offset = 0;
@@ -420,7 +420,7 @@ TEST(BlockValidatorE2ETest, DetectsTornWriteWithReadBeforeWrite) {
 }
 
 TEST(BlockValidatorE2ETest, DetectsTrimGarbageIfValidateTrimZeroesIsTrue) {
-  MockBlockDevice device(10 * 1024 * 1024, true);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/true);
   device.SetDiscardWritesZeroes(false);
 
   ValidatorOptions options;
@@ -437,7 +437,7 @@ TEST(BlockValidatorE2ETest, DetectsTrimGarbageIfValidateTrimZeroesIsTrue) {
 }
 
 TEST(BlockValidatorE2ETest, IgnoresTrimGarbageIfValidateTrimZeroesIsFalse) {
-  MockBlockDevice device(10 * 1024 * 1024, true);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/true);
   device.SetDiscardWritesZeroes(false);
 
   ValidatorOptions options;
@@ -455,7 +455,7 @@ TEST(BlockValidatorE2ETest, IgnoresTrimGarbageIfValidateTrimZeroesIsFalse) {
 
 TEST(BlockValidatorE2ETest,
      IgnoresTrimAndRetainsOldDataWhenDiscardWritesZeroesIsTrue) {
-  MockBlockDevice device(10 * 1024 * 1024, true);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/true);
   device.SetDiscardWritesZeroes(true);
   device.SetIgnoreSomeDiscards(true);
 
@@ -475,7 +475,7 @@ TEST(BlockValidatorE2ETest,
 
 TEST(BlockValidatorE2ETest,
      IgnoresTrimAndRetainsOldDataWhenDiscardWritesZeroesIsFalse) {
-  MockBlockDevice device(10 * 1024 * 1024, true);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/true);
   device.SetDiscardWritesZeroes(false);
   device.SetIgnoreSomeDiscards(true);
 
@@ -499,14 +499,14 @@ TEST(BlockValidatorE2ETest, RunSkipInitWithGarbageBlocks) {
   options.run_time_sec = 2;
   options.skip_init = true;
   options.validate_on_exit = true;
-  MockBlockDevice device(options.region_size, false);
+  MockBlockDevice device(options.region_size, /*is_block_device=*/false);
   device.FillWithValidFormatGarbage(options.block_size);
   absl::Status status = RunValidator(options, &device);
   EXPECT_TRUE(status.ok());
 }
 
 TEST(BlockValidatorE2ETest, RunSkipInitWithMultipleThreads) {
-  MockBlockDevice device(10 * 1024 * 1024, false);
+  MockBlockDevice device(10 * 1024 * 1024, /*is_block_device=*/false);
   device.CorruptData(0, 10 * 1024 * 1024);
 
   ValidatorOptions options;
@@ -527,27 +527,27 @@ class TestPosixFileDevice : public BlockDevice {
   absl::Mutex file_mutex_;
 
  public:
-  TestPosixFileDevice(int fd) : fd_(fd) {}
+  explicit TestPosixFileDevice(int fd) : fd_(fd) {}
   ~TestPosixFileDevice() override { close(fd_); }
 
   bool IsBlockDevice() const override { return false; }
 
   absl::Status Pread(void* buf, size_t count, off_t offset) override {
-    absl::MutexLock lock(&file_mutex_);
+    absl::MutexLock lock(file_mutex_);
     ssize_t ret = pread(fd_, buf, count, offset);
     if (ret != count) return absl::InternalError("pread failed");
     return absl::OkStatus();
   }
 
   absl::Status Pwrite(const void* buf, size_t count, off_t offset) override {
-    absl::MutexLock lock(&file_mutex_);
+    absl::MutexLock lock(file_mutex_);
     ssize_t ret = pwrite(fd_, buf, count, offset);
     if (ret != count) return absl::InternalError("pwrite failed");
     return absl::OkStatus();
   }
 
   absl::Status Discard(off_t offset, size_t count) override {
-    absl::MutexLock lock(&file_mutex_);
+    absl::MutexLock lock(file_mutex_);
     if (fallocate(fd_, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, offset,
                   count) < 0) {
       return absl::InternalError("fallocate failed");
