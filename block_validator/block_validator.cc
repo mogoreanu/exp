@@ -53,13 +53,19 @@ class PosixBlockDevice : public BlockDevice {
 
   absl::Status Pread(void* buf, size_t count, off_t offset) override {
     ssize_t ret = pread(fd_, buf, count, offset);
-    if (ret != count) return absl::InternalError("pread failed");
+    if (ret < 0) return absl::ErrnoToStatus(errno, "pread failed");
+    if (static_cast<size_t>(ret) != count) {
+      return absl::InternalError("pread failed: short read");
+    }
     return absl::OkStatus();
   }
 
   absl::Status Pwrite(const void* buf, size_t count, off_t offset) override {
     ssize_t ret = pwrite(fd_, buf, count, offset);
-    if (ret != count) return absl::InternalError("pwrite failed");
+    if (ret < 0) return absl::ErrnoToStatus(errno, "pwrite failed");
+    if (static_cast<size_t>(ret) != count) {
+      return absl::InternalError("pwrite failed: short write");
+    }
     return absl::OkStatus();
   }
 
@@ -67,7 +73,7 @@ class PosixBlockDevice : public BlockDevice {
     uint64_t range[2] = {static_cast<uint64_t>(offset),
                          static_cast<uint64_t>(count)};
     if (ioctl(fd_, BLKDISCARD, &range) < 0) {
-      return absl::InternalError("BLKDISCARD failed");
+      return absl::ErrnoToStatus(errno, "BLKDISCARD failed");
     }
     return absl::OkStatus();
   }
@@ -86,14 +92,20 @@ class PosixFileDevice : public BlockDevice {
   absl::Status Pread(void* buf, size_t count, off_t offset) override {
     absl::MutexLock lock(file_mutex_);
     ssize_t ret = pread(fd_, buf, count, offset);
-    if (ret != count) return absl::InternalError("pread failed");
+    if (ret < 0) return absl::ErrnoToStatus(errno, "pread failed");
+    if (static_cast<size_t>(ret) != count) {
+      return absl::InternalError("pread failed: short read");
+    }
     return absl::OkStatus();
   }
 
   absl::Status Pwrite(const void* buf, size_t count, off_t offset) override {
     absl::MutexLock lock(file_mutex_);
     ssize_t ret = pwrite(fd_, buf, count, offset);
-    if (ret != count) return absl::InternalError("pwrite failed");
+    if (ret < 0) return absl::ErrnoToStatus(errno, "pwrite failed");
+    if (static_cast<size_t>(ret) != count) {
+      return absl::InternalError("pwrite failed: short write");
+    }
     return absl::OkStatus();
   }
 
@@ -101,7 +113,7 @@ class PosixFileDevice : public BlockDevice {
     absl::MutexLock lock(file_mutex_);
     if (fallocate(fd_, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, offset,
                   count) < 0) {
-      return absl::InternalError("fallocate failed");
+      return absl::ErrnoToStatus(errno, "fallocate failed");
     }
     return absl::OkStatus();
   }

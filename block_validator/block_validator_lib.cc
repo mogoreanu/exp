@@ -337,8 +337,9 @@ absl::Status ValidatorContext::InitDevice() {
 
   size_t chunk_size = std::min<size_t>(1024 * 1024, options_.region_size);
   void* ptr = nullptr;
-  if (posix_memalign(&ptr, 4096, chunk_size) != 0) {
-    return absl::InternalError("posix_memalign failed");
+  int ret = posix_memalign(&ptr, 4096, chunk_size);
+  if (ret != 0) {
+    return absl::ErrnoToStatus(ret, "posix_memalign failed");
   }
   memset(ptr, 0, chunk_size);
 
