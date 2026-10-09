@@ -568,7 +568,7 @@ void ValidatorContext::IssueWrite(int thread_id, absl::BitGen& bitgen,
   }
 
   {
-    absl::MutexLock lock(&issue_mutex_);
+    absl::MutexLock lock(issue_mutex_);
     for (auto it = in_flight_writes_.begin(); it != in_flight_writes_.end();
          ++it) {
       if (it->seq == seq) {
