@@ -134,8 +134,10 @@ void BlockShard::PrintActionLog(uint64_t local_idx,
     int entry_idx = (log.idx + k) % 5;
     auto& entry = log.entries[entry_idx];
     if (entry.write_start != absl::InfinitePast()) {
-      LOG(ERROR) << "  Action " << k << ": seq=" << entry.seq
-                 << ", write_start=" << entry.write_start
+      bool is_trim = (entry.seq & kTrimBit) != 0;
+      uint64_t seq = entry.seq & ~kTrimBit;
+      LOG(ERROR) << "  Action " << k << ": " << (is_trim ? "TRIM " : "WRITE")
+                 << " seq=" << seq << ", write_start=" << entry.write_start
                  << ", write_end=" << entry.write_end;
     }
   }
