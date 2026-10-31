@@ -78,6 +78,7 @@ cc_test(
 cc_test(
     name = "tightloop_benchmarks",
     srcs = ["tightloop_benchmarks.cc"],
+    tags = ["benchmark"],
     deps = [
         ":bits",
         ":time_histogram",
@@ -118,6 +119,7 @@ cc_test(
     args = [
         "--benchmark_filter=all",
     ],
+    tags = ["benchmark"],
     deps = [
         ":time_histogram",
         "@abseil-cpp//absl/log",

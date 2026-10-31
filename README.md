@@ -31,6 +31,8 @@ cd exp
 bazel run :my_hello
 ```
 
+GitHub Actions runs `bazel build //...` and `bazel test //...` on every push and pull request (see `.github/workflows/ci.yml`). Microbenchmarks tagged `benchmark` are skipped in CI; run them locally with `bazel test //... --test_tag_filters=benchmark`.
+
 Download and copy buildifier from 
 [here](https://github.com/bazelbuild/buildtools/releases) and put it somewhere 
 in PATH, for example in `/usr/bin/buildifier`
